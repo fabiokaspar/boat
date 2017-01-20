@@ -2,6 +2,7 @@
 
 #include "utils.h"
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -37,6 +38,7 @@ typedef enum op
 } OPCAO;
 
 
+
 typedef struct
 {
     int RED;
@@ -67,9 +69,11 @@ ALLEGRO_DISPLAY* scr;
 ALLEGRO_BITMAP* img;
 ALLEGRO_BITMAP* icon;
 
+
 int x, y;
 float angle;
 bool stop;
+
 RGB cor;
 int repeatstop;
 int contador;
@@ -219,6 +223,7 @@ void play()
                 if(angle > 0) {
                     angle -= ALLEGRO_PI/18;
                     
+
                     if(angle < 0)
                         angle = 0;
                 }
@@ -293,4 +298,3 @@ void InicializaAllegro()
         exit(0);
     }
 }
-

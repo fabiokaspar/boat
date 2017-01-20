@@ -9,11 +9,12 @@ boat: $(OBJ)
 utils.o: utils.c utils.h
 	gcc -c $^ -g
 
+
 #ambiente.o: ambiente.c ambiente.h queue.h utils.h -lm
 #	gcc -c $^ -g
 
 main.o: utils.h main.c
 	gcc -c $^ -g
 
-clean:
+clean: 
 	rm -f $(OBJ) boat *.h.gch *.txt~  *.c~  *~
