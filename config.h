@@ -19,12 +19,5 @@
 #define QUADRADO_PIXELS 2
 
 
-void setNumberLines(int n);
-int getNumberLines();
-void DefineMargemEsquerda(int mesq);
-int DevolveMargemEsquerda();
-void DefineMargemDireita(int mdir);
-int DevolveMargemDireita();
-
 
 #endif // CONFIG_H_INCLUDED

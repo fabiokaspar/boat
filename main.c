@@ -37,7 +37,10 @@ typedef enum op
     HOWPLAY = 1, PLAY, EXIT
 } OPCAO;
 
-
+typedef struct conta_tecla {
+    ALLEGRO_EVENT ev;
+    int contador;
+} CT;
 
 typedef struct
 {
@@ -61,6 +64,11 @@ void play();
 void finalizaJogo();
 void inicializaJogo();
 void InicializaAllegro();
+void trataTecla (ALLEGRO_EVENT event);
+void display_frame();
+void print_pause_frame();
+void limpa_buffer_teclado (int nit);
+
 
 ALLEGRO_FONT* fnt = NULL;
 ALLEGRO_EVENT_QUEUE* fila = NULL;
@@ -109,7 +117,7 @@ void inicializaJogo () {
 
     al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE));
     al_set_window_position(scr, 400, 50);
-    al_set_window_title(scr, "Homem Ao Mar");
+    al_set_window_title(scr, "Boat Trace");
 
     icon = al_load_bitmap("images/canoa.png");
     al_set_display_icon(scr, icon);
@@ -145,115 +153,157 @@ void finalizaJogo() {
 }
 
 
+void display_frame() {
+    RGB_SCREEN(cor);
+            
+    //DesenhaRio(head);
+    al_draw_rotated_bitmap(img, w/2, h/2, x, y, angle, 0);
+    //PercorreFilaImagens(s);
+
+    al_flip_display();
+    //atualizaRio(head);
+}
+
+void print_pause_frame() {
+    al_draw_text(fnt, al_map_rgb(50, 50, 50), 240, 220, ALLEGRO_ALIGN_CENTRE, "pause");
+    al_flip_display();
+}
+
+void limpa_buffer_teclado (int nit) {
+    int i;
+    for (i = 0; i < nit; i++) {
+        __fpurge(stdin);
+    }
+}
+
 void play()
 {
     inicializaJogo();
     ALLEGRO_EVENT event;
-    ALLEGRO_EVENT event2;
-    struct timeval t0;
-    gettimeofday(&t0, NULL);
-    repeatstop = 0;
+    ALLEGRO_EVENT prox_event;
+    contador = 0;
 
-    while(1)
+    while (1)
     {
+
         if (!al_is_event_queue_empty(fila)) {
             //printf("contador, time: %d, %f\n", contador, relogio(t0));
-            gettimeofday(&t0, NULL);
-            
-            al_get_next_event(fila, &event);
-            
-            contador++;
-            
-            if (contador > 1000)
-                contador = 1000;
-            
-            if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
+            al_get_next_event (fila, &prox_event);
+
+            if (prox_event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
                 break;
 
-            if (event.keyboard.keycode == ALLEGRO_KEY_ENTER  && !event.keyboard.repeat) {
-                repeatstop++;
-                repeatstop %= 3;
+            if (prox_event.keyboard.keycode != ALLEGRO_KEY_LEFT &&
+                prox_event.keyboard.keycode != ALLEGRO_KEY_RIGHT &&
+                prox_event.keyboard.keycode != ALLEGRO_KEY_ENTER) {
 
-                if (repeatstop == 2) {
-                    stop = !stop;                    
-                }
+                continue;
             }
 
-            event2 = event;
 
-        } else {
-
-            if (contador != 2 && relogio(t0) > 0.05)
-                contador = 0;
-            
-            else event = event2;
-        } 
-
-        if(!stop)
-        {
-            if (contador && event.keyboard.keycode == ALLEGRO_KEY_LEFT)
-            {
-               // printf("esquerda %d\n", contador);
-                x -= 7;
-
-                if (angle > -ALLEGRO_PI/9)
-                {
-                    // 10 graus
-                    angle -= ALLEGRO_PI/18;
-                }
-
-                //printf("TECLA ESQUERDA\n");
-            }
-            
-            else if (contador > 0 && event.keyboard.keycode == ALLEGRO_KEY_RIGHT) {
-                //printf("direita %d\n", contador);
-                x += 7;
-
-                if (angle < ALLEGRO_PI/9)
-                {
-                    angle += ALLEGRO_PI/18;
-                }
-
-                //printf("TECLA DIREITA\n");
-            }
-             else 
-            {
-               // al_flush_event_queue(fila);
-
-                if(angle > 0) {
-                    angle -= ALLEGRO_PI/18;
+            if (prox_event.keyboard.keycode != ALLEGRO_KEY_ENTER && stop == false) { 
+                
+                if (prox_event.type == ALLEGRO_EVENT_KEY_UP &&
+                    prox_event.keyboard.keycode == event.keyboard.keycode) {
                     
-
-                    if(angle < 0)
-                        angle = 0;
+                    contador = 0;
+                    printf("UP ");                
+                }
+                
+                else if (prox_event.type == ALLEGRO_EVENT_KEY_DOWN) {
+                    
+                    printf("DOWN ");                
+                    event = prox_event;            
+                    contador = 1;
                 }
 
-                if(angle < 0)
-                {
-                    angle += ALLEGRO_PI/18;
-
-                    if(angle > 0)
-                        angle = 0;
+                /*
+                else if (prox_event.keyboard.repeat && contador == 0) {
+                    event = prox_event;            
+                    contador = 1;
                 }
+                */
+
             }
 
-            RGB_SCREEN(cor);
-            
-            //DesenhaRio(head);
-            al_draw_rotated_bitmap(img, w/2, h/2, x, y, angle, 0);
-            //PercorreFilaImagens(s);
+            /* tecla ENTER foi pressionada */
+            else if (prox_event.keyboard.keycode == ALLEGRO_KEY_ENTER &&
+                prox_event.type == ALLEGRO_EVENT_KEY_DOWN) {
+                stop = !stop;
+                contador = 0;                    
+            }
 
-            al_flip_display();
-            //atualizaRio(head);
+        }
+
+        if (!stop)
+        {
+            //limpa_buffer_teclado(2);
+            trataTecla(event);
+            display_frame();
         }
             
         else {
-            al_draw_text(fnt, al_map_rgb(50, 50, 50), 240, 250, ALLEGRO_ALIGN_CENTRE, "pause");
-            al_flip_display();
-        }
+            print_pause_frame(); 
+        } 
+        
     }
 
     finalizaJogo();
+}
+
+void trataTecla (ALLEGRO_EVENT event) {
+    if (1) {
+        if (contador && event.keyboard.keycode == ALLEGRO_KEY_LEFT)
+        {
+            
+            //al_get_keyboard_state(ret_state);
+            printf("esquerda %d\n", contador);
+            x -= 7;
+
+            if (angle > -ALLEGRO_PI/9)
+            {
+                // 10 graus
+                angle -= ALLEGRO_PI/18;
+            }
+
+            //printf("TECLA ESQUERDA\n");
+        }
+        
+
+        else if (contador && event.keyboard.keycode == ALLEGRO_KEY_RIGHT) {
+
+            printf("direita %d\n", contador);
+                
+            x += 7;
+
+            if (angle < ALLEGRO_PI/9)
+            {
+                angle += ALLEGRO_PI/18;
+            }
+
+            //printf("TECLA DIREITA\n");
+        }
+        else 
+        {
+           // al_flush_event_queue(fila);
+
+            if(angle > 0) {
+                angle -= ALLEGRO_PI/18;
+                
+
+                if(angle < 0)
+                    angle = 0;
+            }
+
+            if(angle < 0)
+            {
+                angle += ALLEGRO_PI/18;
+
+                if(angle > 0)
+                    angle = 0;
+            }
+        }
+    }
 }
 
 void InicializaAllegro()
