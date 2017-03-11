@@ -48,7 +48,7 @@
 		<Unit filename="desenho.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="desenho.h" />
+		<Unit filename="render.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>

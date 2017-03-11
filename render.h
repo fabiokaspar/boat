@@ -1,18 +1,21 @@
-#ifndef DESENHO_H_INCLUDED
-#define DESENHO_H_INCLUDED
+#ifndef RENDER_H_INCLUDED
+#define RENDER_H_INCLUDED
 
-#include "queue.h"
+
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_image.h>
+#include "ambiente.h"
+
 
 #define RGB_SCREEN(cor)  (al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE)))
 
-typedef struct
+
+typedef struct rgb
 {
-    int RED;
-    int GREEN;
-    int BLUE;
+    unsigned char RED;
+    unsigned char GREEN;
+    unsigned char BLUE;
 } RGB;
 
 typedef struct
@@ -26,4 +29,4 @@ void DesenhaImagem(SCREEN* s, char* caminho, int x, int y);
 void DesenhaRio(Node* head);
 
 
-#endif // DESENHO_H_INCLUDED
+#endif // RENDER_H_INCLUDED

@@ -1,35 +1,21 @@
 /* http://www.inf.pucrs.br/~manssour/Allegro/#eventos */
 
 #include "utils.h"
-
+#include "render.h"
+#include "ambiente.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <time.h>
+#include <string.h>
+#include <math.h>
+
+
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
-
-/* Macros de configuração do jogo   */
-#define DISPLAY_HIGHT 540
-#define DISPLAY_WEIGHT 480
-
-#define NCOLS 80
-#define NROWS 60
-#define MARGEM_ESQ 10
-#define MARGEM_DIR 70
-#define INTERVALO 5
-#define SIZE_ILHA 10
-#define PROBABILITY_ILHA 0.8
-#define SEMENTE 5
-#define FOLGA_ILHAS 15
-#define QUADRADO_PIXELS 2
-
-#define FPS 120
-#define RGB_SCREEN(cor)  (al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE)))
 
 
 typedef enum op
@@ -37,27 +23,6 @@ typedef enum op
     HOWPLAY = 1, PLAY, EXIT
 } OPCAO;
 
-typedef struct conta_tecla {
-    ALLEGRO_EVENT ev;
-    int contador;
-} CT;
-
-typedef struct
-{
-    int RED;
-    int GREEN;
-    int BLUE;
-} RGB;
-
-/*
-typedef struct
-{
-    RGB cor;
-    ALLEGRO_DISPLAY* scr;
-    ALLEGRO_BITMAP* img;
-} SCREEN;
-
-*/
 
 int menu();
 void play();
@@ -68,29 +33,35 @@ void trataTecla (ALLEGRO_EVENT event);
 void display_frame();
 void print_pause_frame();
 void limpa_buffer_teclado (int nit);
+int detectaColisao ();
+int teste_oito_vizinhos (ALLEGRO_BITMAP* bmp, Ponto centro, int raio);
+Ponto rotacao (Ponto p, float angle);
 
 
 ALLEGRO_FONT* fnt = NULL;
+ALLEGRO_FONT* fnt_score = NULL;
 ALLEGRO_EVENT_QUEUE* fila = NULL;
-//Node* head;
 ALLEGRO_DISPLAY* scr;
-ALLEGRO_BITMAP* img;
+ALLEGRO_BITMAP* barco;
 ALLEGRO_BITMAP* icon;
-
+Node* head;
 
 int x, y;
 float angle;
 bool stop;
+long int score;
+long int record;
+Ponto borda[8];
 
 RGB cor;
-int repeatstop;
 int contador;
 float h, w;
-
+int flag;
 
 int main()
 {
     InicializaAllegro();
+    inicializaJogo();
     play();
 
     return 0;
@@ -98,7 +69,6 @@ int main()
 
 
 void inicializaJogo () {
-    repeatstop = 0;
     contador = 0;
 
     x = 200, y = 430;
@@ -120,12 +90,12 @@ void inicializaJogo () {
     al_set_window_title(scr, "Boat Trace");
 
     icon = al_load_bitmap("images/canoa.png");
-    al_set_display_icon(scr, icon);
+    barco = al_load_bitmap("images/canoa.png");
 
-    img = al_load_bitmap("images/canoa.png");
+    al_set_display_icon(scr, barco);
 
-    w = al_get_bitmap_width(img);
-    h = al_get_bitmap_height(img);
+    w = al_get_bitmap_width(barco);
+    h = al_get_bitmap_height(barco);
 
     fila = al_create_event_queue();
 
@@ -135,53 +105,126 @@ void inicializaJogo () {
         exit(0);
     }
 
-    al_draw_bitmap(img, x, y, 0);
+    al_draw_bitmap(barco, x, y, 0);
 
     al_register_event_source(fila, al_get_display_event_source(scr));
     al_register_event_source(fila, al_get_keyboard_event_source());
-    RGB_SCREEN(cor);
 
+    head = geraRio();
+    
+    borda[0] = (Ponto) {0, 0 - h/2 + 5};    //ok
 
-    //head = geraRio();
+    borda[1] = (Ponto) {0, h/2 - 1};    //ok
+
+    borda[2] = (Ponto) {0 - w/2, 0};        //ok
+
+    borda[3] = (Ponto) {w/2 - 3, 0};    //ok
+
+    printf("Loading ...\n");
+    al_rest(1);
+    printf("Starting\n");
+    
 }
 
-void finalizaJogo() {
-    //DesalocaAmbiente(head);
-    al_destroy_event_queue(fila);
-    al_destroy_bitmap(img);
-    al_destroy_display(scr);
+int detectaColisao () {
+    ALLEGRO_BITMAP* bmp = al_get_backbuffer(scr);
+    Ponto p;
+    unsigned char r, g, b;
+    RGB rgb;
+    ALLEGRO_COLOR cor;
+    short i, dr;
+
+    for (i = 0; i < 4; i++) {
+        p = rotacao(borda[i], angle);
+        
+        for (dr = 1; dr < 4; dr++) {
+            if (teste_oito_vizinhos(bmp, p, dr)) {
+                return 1;
+            }
+        }
+    }
+
+
+    //Ponto p2 = rotacao(borda[1], angle);
+            
+    //al_draw_circle(p2.x, p2.y, 2, al_map_rgb(0,0,0), 1);
+
+    return 0;
 }
 
+int teste_oito_vizinhos (ALLEGRO_BITMAP* bmp, Ponto centro, int raio) {
+    int i;
+    unsigned char r, g, b;
+    ALLEGRO_COLOR cor[8];
+
+    cor[0] = al_get_pixel(bmp, centro.x - raio, centro.y - raio);
+    cor[1] = al_get_pixel(bmp, centro.x - raio, centro.y);
+    cor[2] = al_get_pixel(bmp, centro.x - raio, centro.y + raio);
+    cor[3] = al_get_pixel(bmp, centro.x, centro.y - raio);
+    cor[4] = al_get_pixel(bmp, centro.x, centro.y + raio);
+    cor[5] = al_get_pixel(bmp, centro.x + raio, centro.y - raio);
+    cor[6] = al_get_pixel(bmp, centro.x + raio, centro.y);
+    cor[7] = al_get_pixel(bmp, centro.x + raio, centro.y + raio);
+    
+    for (i = 0; i < 8; i++) {
+        al_unmap_rgb(cor[i], &r, &g, &b);
+        
+        // rgb da areia = (255, 230, 128)
+        if (r == 255 && g == 230 && b == 128) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+
+// em ralação a origem do plano xoy
+// matriz de rotação:
+// M = [cos(beta) -sen(-beta) ]
+//     [sen(-beta)  cos(beta) ]
+Ponto rotacao (Ponto p, float angle) {
+    Ponto p2;
+    float a, b;
+
+    a = cos(angle);
+    b = sin(angle);
+
+    p2.x = x + (int) (a * p.x - b * p.y);
+    p2.y = y + (int) (b * p.x + a * p.y);
+
+    return p2;
+}
 
 void display_frame() {
     RGB_SCREEN(cor);
-            
-    //DesenhaRio(head);
-    al_draw_rotated_bitmap(img, w/2, h/2, x, y, angle, 0);
-    //PercorreFilaImagens(s);
+    DesenhaRio(head);
+    char score_str[30];
+    al_draw_filled_rectangle(0, DISPLAY_HIGHT-20, DISPLAY_WEIGHT, DISPLAY_HIGHT, al_map_rgb(0,0,0));
+
+    sprintf(score_str, "score: %ld", score);
+    score++;
+
+    if (score > 1000000)
+        score = 1000000;
+
+    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), DISPLAY_WEIGHT - 50, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, score_str);
+    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), 70, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, "record:");
+
+
+    al_draw_rotated_bitmap (barco, w/2, h/2, x, y, angle, 0);
 
     al_flip_display();
-    //atualizaRio(head);
-}
-
-void print_pause_frame() {
-    al_draw_text(fnt, al_map_rgb(50, 50, 50), 240, 220, ALLEGRO_ALIGN_CENTRE, "pause");
-    al_flip_display();
-}
-
-void limpa_buffer_teclado (int nit) {
-    int i;
-    for (i = 0; i < nit; i++) {
-        __fpurge(stdin);
-    }
+    al_rest(0.01);
 }
 
 void play()
 {
-    inicializaJogo();
     ALLEGRO_EVENT event;
     ALLEGRO_EVENT prox_event;
     contador = 0;
+
+    display_frame();
 
     while (1)
     {
@@ -207,26 +250,17 @@ void play()
                     prox_event.keyboard.keycode == event.keyboard.keycode) {
                     
                     contador = 0;
-                    printf("UP ");                
                 }
                 
                 else if (prox_event.type == ALLEGRO_EVENT_KEY_DOWN) {
                     
-                    printf("DOWN ");                
                     event = prox_event;            
                     contador = 1;
                 }
-
-                /*
-                else if (prox_event.keyboard.repeat && contador == 0) {
-                    event = prox_event;            
-                    contador = 1;
-                }
-                */
 
             }
 
-            /* tecla ENTER foi pressionada */
+            // tecla ENTER foi pressionada 
             else if (prox_event.keyboard.keycode == ALLEGRO_KEY_ENTER &&
                 prox_event.type == ALLEGRO_EVENT_KEY_DOWN) {
                 stop = !stop;
@@ -237,9 +271,17 @@ void play()
 
         if (!stop)
         {
-            //limpa_buffer_teclado(2);
+            limpa_buffer_teclado(5);
+            atualizaRio(head);
             trataTecla(event);
+            
+            
             display_frame();
+               
+            if (detectaColisao()) {
+                printf("COLISÃO! = %d\n", flag++);
+            } 
+            
         }
             
         else {
@@ -252,56 +294,45 @@ void play()
 }
 
 void trataTecla (ALLEGRO_EVENT event) {
-    if (1) {
-        if (contador && event.keyboard.keycode == ALLEGRO_KEY_LEFT)
-        {
-            
-            //al_get_keyboard_state(ret_state);
-            printf("esquerda %d\n", contador);
-            x -= 7;
-
-            if (angle > -ALLEGRO_PI/9)
-            {
-                // 10 graus
-                angle -= ALLEGRO_PI/18;
-            }
-
-            //printf("TECLA ESQUERDA\n");
-        }
+    if (contador && event.keyboard.keycode == ALLEGRO_KEY_LEFT)
+    {
         
+        x -= 7;
 
-        else if (contador && event.keyboard.keycode == ALLEGRO_KEY_RIGHT) {
-
-            printf("direita %d\n", contador);
-                
-            x += 7;
-
-            if (angle < ALLEGRO_PI/9)
-            {
-                angle += ALLEGRO_PI/18;
-            }
-
-            //printf("TECLA DIREITA\n");
-        }
-        else 
+        if (angle > -ALLEGRO_PI/9)
         {
-           // al_flush_event_queue(fila);
+            // 10 graus
+            angle -= ALLEGRO_PI/18;
+        }
 
-            if(angle > 0) {
-                angle -= ALLEGRO_PI/18;
-                
+    }
+    
+    else if (contador && event.keyboard.keycode == ALLEGRO_KEY_RIGHT) {
+            
+        x += 7;
 
-                if(angle < 0)
-                    angle = 0;
-            }
+        if (angle < ALLEGRO_PI/9)
+        {
+            angle += ALLEGRO_PI/18;
+        }
+
+    }
+    else 
+    {
+        if(angle > 0) {
+            angle -= ALLEGRO_PI/18;
+            
 
             if(angle < 0)
-            {
-                angle += ALLEGRO_PI/18;
+                angle = 0;
+        }
 
-                if(angle > 0)
-                    angle = 0;
-            }
+        if(angle < 0)
+        {
+            angle += ALLEGRO_PI/18;
+
+            if(angle > 0)
+                angle = 0;
         }
     }
 }
@@ -340,7 +371,8 @@ void InicializaAllegro()
         return ;
     }
     
-    fnt = al_load_font("images/FreeSerif.ttf", 50, 0);
+    fnt = al_load_font("images/FreeSerif.ttf", 30, 0);
+    fnt_score = al_load_font("images/FreeSerif.ttf", 20, 0);
     
     if (!fnt)
     {
@@ -348,3 +380,23 @@ void InicializaAllegro()
         exit(0);
     }
 }
+
+void finalizaJogo() {
+    DesalocaAmbiente(head);
+    al_destroy_event_queue(fila);
+    al_destroy_bitmap(barco);
+    al_destroy_display(scr);
+}
+
+void print_pause_frame() {
+    al_draw_text(fnt, al_map_rgb(0, 0, 0), DISPLAY_WEIGHT/2, DISPLAY_HIGHT/2.5, ALLEGRO_ALIGN_CENTRE, "PAUSE");
+    al_flip_display();
+}
+
+void limpa_buffer_teclado (int nit) {
+    int i;
+    for (i = 0; i < nit; i++) {
+        __fpurge(stdin);
+    }
+}
+
