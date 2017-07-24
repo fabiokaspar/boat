@@ -27,6 +27,7 @@ void display_frame();
 void print_pause_frame();
 void limpa_buffer_teclado (int nit);
 int detectaColisao ();
+void ajusta_barco();
 int teste_oito_vizinhos (ALLEGRO_BITMAP* bmp, Ponto centro, int raio);
 Ponto rotacao (Ponto p, float angle);
 
@@ -52,7 +53,11 @@ int contador;
 float h, w;
 int flag;
 short pisca;
+bool pressed_keys[2] = {false, false};
 
+enum MYKEYS {
+    KEY_LEFT, KEY_RIGHT
+};
 
 
 int main()
@@ -73,7 +78,6 @@ void inicializaJogo () {
     angle = 0;
     stop = false;
     cor = (RGB){0, 127, 255};
-
     
     scr = al_create_display(800, 450);
     al_set_window_position(scr, 300, 100);
@@ -126,9 +130,9 @@ void inicializaJogo () {
     borda[3] = (Ponto) {w/2 - 3, 0};    //ok
 
 
-    printf("Loading ...\n");
+    //printf("Loading ...\n");
     //al_rest(2);
-    printf("Starting\n");
+    printf("Starting ...\n");
     
 }
 
@@ -293,14 +297,24 @@ void play()
 
             if (prox_event.keyboard.keycode != ALLEGRO_KEY_ENTER && stop == false) { 
                 
-                if (prox_event.type == ALLEGRO_EVENT_KEY_UP &&
-                    prox_event.keyboard.keycode == event.keyboard.keycode) {
+                if (prox_event.type == ALLEGRO_EVENT_KEY_UP) {
                     contador = 0;
+
+                    if (prox_event.keyboard.keycode == ALLEGRO_KEY_LEFT)
+                        pressed_keys[KEY_LEFT] = false;
+                    else if (prox_event.keyboard.keycode == ALLEGRO_KEY_RIGHT)
+                        pressed_keys[KEY_RIGHT] = false;
+
                 }
                 
                 else if (prox_event.type == ALLEGRO_EVENT_KEY_DOWN) {
                     event = prox_event;            
                     contador = 1;
+
+                    if (prox_event.keyboard.keycode == ALLEGRO_KEY_LEFT)
+                        pressed_keys[KEY_LEFT] = true;
+                    else if (prox_event.keyboard.keycode == ALLEGRO_KEY_RIGHT)
+                        pressed_keys[KEY_RIGHT] = true;
                 }
 
             }
@@ -348,47 +362,54 @@ void play()
 }
 
 void trataTecla (ALLEGRO_EVENT event) {
-    if (contador && event.keyboard.keycode == ALLEGRO_KEY_LEFT)
-    {
-        
-        x -= 7;
-
-        if (angle > -ALLEGRO_PI/9)
+    if ( (pressed_keys[KEY_LEFT] ^ pressed_keys[KEY_RIGHT] ) ) {
+        switch (event.keyboard.keycode) 
         {
-            // 10 graus
-            angle -= ALLEGRO_PI/18;
-        }
+            case ALLEGRO_KEY_LEFT:
+                x -= 7;
 
+                if (angle > -ALLEGRO_PI/9)
+                {
+                    // 10 graus
+                    angle -= ALLEGRO_PI/18;
+                }
+
+                break;
+             
+             case ALLEGRO_KEY_RIGHT:
+                x += 7;
+
+                if (angle < ALLEGRO_PI/9)
+                {
+                    angle += ALLEGRO_PI/18;
+                }
+                
+                break;
+        }    
     }
-    
-    else if (contador && event.keyboard.keycode == ALLEGRO_KEY_RIGHT) {
-            
-        x += 7;
 
-        if (angle < ALLEGRO_PI/9)
-        {
-            angle += ALLEGRO_PI/18;
-        }
-
-    }
     else 
     {
-        if(angle > 0) {
-            angle -= ALLEGRO_PI/18;
-            
-
-            if(angle < 0)
-                angle = 0;
-        }
-
-        if(angle < 0)
-        {
-            angle += ALLEGRO_PI/18;
-
-            if(angle > 0)
-                angle = 0;
-        }
+        ajusta_barco();
     }
+}
+
+void ajusta_barco() {
+    if(angle > 0) 
+    {
+        angle -= ALLEGRO_PI/18;
+        
+        if(angle < 0)
+            angle = 0;
+    }
+
+    if(angle < 0)
+    {
+        angle += ALLEGRO_PI/18;
+
+        if(angle > 0)
+            angle = 0;
+    }    
 }
 
 void InicializaAllegro()
