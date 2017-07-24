@@ -5,87 +5,67 @@
 #include <math.h>
 
 
-static int sorteia_ilha(int flg);
-static int conta_folga(Node *head);
+static int sorteia_ilha();
 
 static int ME();
 static int MD();
 
 static void PreencheLinha(Node* node);
-static void GeraIlha(Node* node);
+static void ilha(Node* node);
 void DesalocaAmbiente(Node* head);
 
-
-float contl = 0;
-float contr = 0;
+int me;
 
 static int ME ()
 {
-    float me;
-    randomize(clock());
-    int rn = random_integer(0, 30);
-    int rf = random_integer(0, 100);
+    static int xe = MARGEM_ESQ + 2;
+    randomize(clock() + time(NULL));
 
-    if (rf <= 100) {
-        if (rn <= 10)
-            me = MARGEM_ESQ +  INTERVALO * fabs(sin(contl));
-        
-        else if (rn <= 20)
-            me = MARGEM_ESQ + 1.2 * INTERVALO * fabs(sin(contl));
-        
-        else
-            me = MARGEM_ESQ + 2.0 * INTERVALO * fabs(sin(contl)); 
-    }
-    else {
-        if (rn <= 10)
-            me = MARGEM_ESQ +  INTERVALO * sqrt(fabs(sin(contl)));
-        
-        else if (rn <= 20)
-            me = MARGEM_ESQ + 1.2 * INTERVALO * sqrt(fabs(sin(contl)));
-        
-        else
-            me = MARGEM_ESQ + 2.0 * INTERVALO * sqrt(fabs(sin(contl)));   
-    }
+    if (random_real(0, 100) < 50)
+        me = xe + random_integer(-2, 2);
 
-    contl += 0.1;
+    else if (random_real(0, 50) < 25)
+        me = xe + random_integer(1, 2);
+    
+    else
+        me = xe - random_integer(1, 2); 
 
-    if(contl == 5) contl = 0;
+    if (me < MARGEM_ESQ)
+        me = MARGEM_ESQ;
+
+    else if (me > LIM_ESQ)
+        me = LIM_ESQ;
+
+    xe = me;
 
     return me;
 }
 
 static int MD ()
 {
-    float md;
-    randomize(clock());
-    int rn = random_integer(0, 30);
-    int rf = random_integer(0, 100);
+    static int xd = MARGEM_DIR - 2;
+    randomize(clock() + time(NULL));
+    int md;
 
-    if (rf <= 50) {
-        if (rn <= 10)
-            md = MARGEM_DIR -  INTERVALO * fabs(cos(contl));
-        
-        else if (rn <= 20)
-            md = MARGEM_DIR - 1.2 * INTERVALO * fabs(cos(contl));
-        
-        else
-            md = MARGEM_DIR - 2.0 * INTERVALO * fabs(cos(contl));
-    }
+    if (random_real(0, 100) < 50)
+        md = xd + random_integer(-2, 2);
 
-    else {
-        if (rn <= 10)
-            md = MARGEM_DIR -  INTERVALO * sqrt(fabs(cos(contl)));
-        
-        else if (rn <= 20)
-            md = MARGEM_DIR - 1.2 * INTERVALO * sqrt(fabs(cos(contl)));
-        
-        else
-            md = MARGEM_DIR - 2.0 * INTERVALO * sqrt(fabs(cos(contl)));   
-    }
+    else if (random_real(0, 50) < 25)
+        md = xd - random_integer(1, 2);
+    
+    else
+        md = xd + random_integer(1, 2); 
 
-    contr += 0.1;
+    if (md > MARGEM_DIR)
+        md = MARGEM_DIR;
 
-    if (contr == 5) contr = 0;
+    else if (md < LIM_DIR)
+        md = LIM_DIR;
+
+    xd = md;
+
+    if (md - me > LARGURA_MAX)
+        md = LARGURA_MAX + me;
 
     return md;
 }
@@ -93,118 +73,95 @@ static int MD ()
 
 Node* geraRio()
 {
-    int cont = FOLGA_ILHAS;
     int i;
-
+    
     Node* head = Queue_Init();
+    fim_jogo = 0;
+    passos_chegada = NROWS + 15;
+    conta_passos = -30;
+    chegada = al_load_bitmap("images/chegada.png");
+    h_chegada = al_get_bitmap_height(chegada);
+    w_chegada = al_get_bitmap_width(chegada);
 
     /* gera as margens */
 
-    for(i = 0; i < NROWS; i++)
+    for (i = 0; i < NROWS; i++)
     {
-        Node* node = Queue_Insert(head, NCOLS);
-        //Queue_set_ilha(node, sorteia_ilha(cont));
+        Node* node = Queue_Insert(head);
 
         PreencheLinha(node);
-
-        if(cont > 0)
-            cont--;
-
-        else cont = FOLGA_ILHAS;
     }
 
     return head;
 }
 
-
-static void PreencheLinha(Node* node)
-{
-    float me, md;
-
-    me = ME();
-    md = MD();
-
-    node->margem_esq = me;
-    node->margem_dir = md;
-    node->inicio_ilha = -1;
-
-
-    /*
-
-     // Linha tem ilha ? 
-
-     if (Queue_get_ilha(node))
-     {
-        GeraIlha(node);
-     }
-     */
-}
-
-
 void atualizaRio(Node *head)
 {
     int i;
+
     Node* node;
 
     Queue_Delete(head);
 
-    node = Queue_Insert(head, NCOLS);
-
-    //Queue_set_ilha(node, sorteia_ilha(conta_folga(head)));
-
-    randomize(clock());
+    node = Queue_Insert(head);
 
     PreencheLinha(node);
+    
+    randomize(clock());
 }
 
-
-
-void DesalocaAmbiente(Node* head)
+static void PreencheLinha (Node* node)
 {
-    Queue_Free(head);
+    float me, md;
+    me = ME();
+    md = MD();
+
+
+    node->margem_esq = me;
+    node->margem_dir = md;
+
+    
+    static int folga = 0;
+
+    folga++;
+
+    if (folga >= FOLGA_ILHAS && sorteia_ilha()) {
+        folga = 0;
+        ilha(node);
+    }
+    
+    if (score % 60 == 0) {
+        node->tem_chegada = 1;
+        fim_jogo = 1;
+        float bloco_x = ((float)DISPLAY_WEIGHT)/NCOLS;
+        float largura = (node->margem_dir - node->margem_esq);
+        
+        float dl = fabs(largura - w_chegada/bloco_x) * 0.5;
+        x_chegada = (node->margem_esq + dl) * bloco_x;
+    }
+
 }
 
-/* se 1, é ilha, se 0, é água */
-
-static int sorteia_ilha(int flg)
+// haverá ilha ?
+static int sorteia_ilha ()
 {
     randomize(SEMENTE + time(NULL));
 
-    return (random_real(0, 1) <= PROBABILITY_ILHA && flg >= FOLGA_ILHAS);
-}
-
-static int conta_folga(Node *head)
-{
-    int qtd = 0;
-    Node *node = head->prox;
-
-    for(node = head->prox; node != head && node->inicio_ilha == -1; node = node->prox)
-    {
-        qtd++;
-
-        if(qtd == FOLGA_ILHAS)
-            break;
-    }
-
-    return qtd;
+    return (random_real(0, 1) <= PROBABILITY_ILHA);
 }
 
 
-static void GeraIlha(Node* node)
+static void ilha (Node* node)
 {
-    /*
-    int j, inicio_ilha;
-    int margem_esq = DevolveMargemEsquerda();
-    int margem_dir = DevolveMargemDireita();
-
     randomize(SEMENTE + time(NULL));
-    inicio_ilha = random_integer(margem_esq + INTERVALO + 2, margem_dir - INTERVALO - 2);
+    
+    node->inicio_ilha = random_integer(node->margem_esq + 5, node->margem_dir - 5);
+}
 
-    for(j = inicio_ilha; j <= inicio_ilha + SIZE_ILHA; j++)
-    {
-        node->v[j] = '#';
-    }
-    */
+
+void DesalocaAmbiente (Node* head)
+{
+    Queue_Free_All (head);
 }
 
 
@@ -214,41 +171,47 @@ static void GeraIlha(Node* node)
 Node* Queue_Init()
 {
     Node* head = MallocSafe(sizeof(Node));
+    
     head->prox = head;
-
+    
     return head;
 }
 
-Node* Queue_Insert(Node *head, int num_pxls)
+Node* Queue_Insert(Node *head)
 {
     Node* node = (Node*) MallocSafe(sizeof(Node));
 
     node->prox = head->prox;
+
+    node->ant = head;
+    
+    /*
+    if (head->prox == head) {
+        head->ant = node;
+    }
+    */
+
+    head->prox->ant = node;
     
     head->prox = node;
+
+    node->inicio_ilha = -1;
+
+    node->tem_chegada = 0;
+
 
     return node;
 }
 
 void Queue_Delete(Node *head)
 {
-    Node *p = head;
+    Node* lixo = head->ant;
 
-    while (p->prox->prox != head)
-        p = p->prox;
+    lixo->ant->prox = head;
 
-    free(p->prox);
-    p->prox = head;
-}
+    head->ant = lixo->ant;
 
-void Queue_set_ilha(Node* node, int tem_ilha)
-{
-    //node->tem_ilha = tem_ilha;
-}
-
-int Queue_get_ilha(Node* node)
-{
-    //return node->tem_ilha;
+    free(lixo);
 }
 
 int Queue_Empty(Node *head)
@@ -256,9 +219,9 @@ int Queue_Empty(Node *head)
     return head->prox == head;
 }
 
-void Queue_Free(Node *head)
+void Queue_Free_All (Node *head)
 {
-    while(!Queue_Empty(head))
+    while (!Queue_Empty(head))
         Queue_Delete(head);
 
     free(head);

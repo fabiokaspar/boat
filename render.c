@@ -21,30 +21,52 @@ void DesenhaRio (Node* head)
 
     for (node = head->prox; node != head; node = node->prox)
     {
+        
+        Node* next = node->prox;
+           
         // margem esquerda
+        al_draw_filled_rectangle(0 * bloco_x, y, node->margem_esq * bloco_x, y + bloco_y, al_map_rgb(255, 230, 128));
 
-        al_draw_filled_rectangle(0, y, MARGEM_ESQ * bloco_x, y + bloco_y, al_map_rgb(255, 230, 128));
-        
-        al_draw_filled_rounded_rectangle(0, y, node->margem_esq * bloco_x, y + bloco_y, 
-            bloco_x/2, bloco_y/2, al_map_rgb(255, 230, 128));
-        
-        //float x1 = (node->margem_esq - 1.2) * bloco_x;
-
-        //al_draw_filled_circle(x1, y,  2.0 * bloco_y, al_map_rgb(250, 240, 230));
-            
         // margem direita
+        al_draw_filled_rectangle(node->margem_dir * bloco_x, y, NCOLS * bloco_x, y + bloco_y, al_map_rgb(255, 230, 128));
         
-        al_draw_filled_rectangle(MARGEM_DIR * bloco_x, y, NCOLS * bloco_x, y + bloco_y, al_map_rgb(255, 230, 128));
         
-        al_draw_filled_rounded_rectangle(node->margem_dir * bloco_x, y, NCOLS * bloco_x, y + bloco_y,
-            bloco_x/2, bloco_y/2, al_map_rgb(255, 230, 128));
+        if (next != head) {
+            // margem esquerda
+            
+            int x1 = node->margem_esq * bloco_x;
+            int x2 = next->margem_esq * bloco_x;
+        
+            if (x1 > x2) {
+                al_draw_filled_triangle(x1, y + bloco_y, x2, y + bloco_y, x2, y + 2 * bloco_y, al_map_rgb(255, 230, 128));            
+            }
+            else if (x1 < x2) {
+                al_draw_filled_triangle(x1, y, x1, y + bloco_y, x2, y + bloco_y, al_map_rgb(255, 230, 128));            
+            }
 
+            else {
+                //al_draw_filled_rectangle(x1 - 20, y, x1, y + bloco_y, al_map_rgb(136, 100, 40));
+            }                
+            
+            // margem direita
+            x1 = node->margem_dir * bloco_x;
+            x2 = next->margem_dir * bloco_x;
+
+            if (x1 > x2) {
+                al_draw_filled_triangle(x1, y, x1, y + bloco_y, x2, y + bloco_y,  al_map_rgb(255, 230, 128));            
+            }
+            else if (x1 < x2) {
+                al_draw_filled_triangle(x1, y + bloco_y, x2, y + bloco_y, x2, y + 2 * bloco_y, al_map_rgb(255, 230, 128));            
+            }
+        }
         
-        //float x2 = (node->margem_dir + 4.2)* bloco_x;
-        
-        //al_draw_filled_circle(x2, y,  3.0 * bloco_y, al_map_rgb(250, 240, 230));
+        if (node->inicio_ilha != -1) {
+            al_draw_filled_rectangle(node->inicio_ilha * bloco_x, y, (node->inicio_ilha + SIZE_ILHA) * bloco_x, y + bloco_y, al_map_rgb(255, 230, 128));
+        }
 
         y += bloco_y;
+
+        
     }
 
 }

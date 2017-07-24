@@ -5,6 +5,7 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_image.h>
+#include <math.h>
 #include "ambiente.h"
 
 
@@ -24,6 +25,9 @@ typedef struct
     ALLEGRO_DISPLAY* scr;
     ALLEGRO_BITMAP* img;
 } SCREEN;
+
+
+
 
 void DesenhaImagem(SCREEN* s, char* caminho, int x, int y);
 void DesenhaRio(Node* head);
