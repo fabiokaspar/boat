@@ -14,27 +14,30 @@ static void PreencheLinha(Node* node);
 static void ilha(Node* node);
 void DesalocaAmbiente(Node* head);
 
-int me;
 
 static int ME ()
 {
-    static int xe = MARGEM_ESQ + 2;
+    int me;
+    static int xe = MARGEM_ESQ + 1.0 * INTERVALO/10;
+    
     randomize(clock() + time(NULL));
+    
+    randomize(random_integer(0, 1000000));
 
-    if (random_real(0, 100) < 50)
+    if (random_integer(0, 100) < 50)
         me = xe + random_integer(-2, 2);
 
-    else if (random_real(0, 50) < 25)
+    if (random_integer(50, 100) < 75)
         me = xe + random_integer(1, 2);
     
     else
-        me = xe - random_integer(1, 2); 
+        me = xe - random_integer(1, 2);
 
     if (me < MARGEM_ESQ)
-        me = MARGEM_ESQ;
+        me = MARGEM_ESQ + 1.0 * INTERVALO/10;
 
-    else if (me > LIM_ESQ)
-        me = LIM_ESQ;
+    if (me > LIM_ESQ)
+        me = LIM_ESQ - 1.0 * INTERVALO/10;
 
     xe = me;
 
@@ -43,29 +46,29 @@ static int ME ()
 
 static int MD ()
 {
-    static int xd = MARGEM_DIR - 2;
-    randomize(clock() + time(NULL));
     int md;
+    static int xd = MARGEM_DIR - 1.0 * INTERVALO/10;
 
-    if (random_real(0, 100) < 50)
+    randomize(clock() + time(NULL));
+    
+    randomize(random_integer(0, 1000000));
+
+    if (random_integer(0, 100) < 50)
         md = xd + random_integer(-2, 2);
 
-    else if (random_real(0, 50) < 25)
-        md = xd - random_integer(1, 2);
+    else if (random_integer(50, 100) < 75)
+        md = xd + random_integer(1, 2);
     
     else
-        md = xd + random_integer(1, 2); 
+        md = xd - random_integer(1, 2); 
 
     if (md > MARGEM_DIR)
-        md = MARGEM_DIR;
+        md = MARGEM_DIR - 1.0 * INTERVALO/10;
 
-    else if (md < LIM_DIR)
-        md = LIM_DIR;
+    if (md < LIM_DIR)
+        md = LIM_DIR + 1.0 * INTERVALO/10;
 
     xd = md;
-
-    if (md - me > LARGURA_MAX)
-        md = LARGURA_MAX + me;
 
     return md;
 }
@@ -75,14 +78,8 @@ Node* geraRio()
 {
     int i;
     
-    Node* head = Queue_Init();
-    fim_jogo = 0;
-    passos_chegada = NROWS + 15;
-    conta_passos = -30;
-    chegada = al_load_bitmap("images/chegada.png");
-    h_chegada = al_get_bitmap_height(chegada);
-    w_chegada = al_get_bitmap_width(chegada);
 
+    Node* head = Queue_Init();
     /* gera as margens */
 
     for (i = 0; i < NROWS; i++)
@@ -110,34 +107,46 @@ void atualizaRio(Node *head)
     randomize(clock());
 }
 
+
+
 static void PreencheLinha (Node* node)
 {
-    float me, md;
+    int me, md;
     me = ME();
     md = MD();
 
+    if (md - me > LARGURA_MAX)
+        md = LARGURA_MAX + me;
+    
+    if (md - me < LARGURA_MIN)
+        md = LARGURA_MIN + me;
 
     node->margem_esq = me;
     node->margem_dir = md;
+
+    static int index_texture = 0;
+
+    node->index_texture = index_texture;
+
+    index_texture += (int)(BLOCO_Y);
+
+    if (index_texture > DISPLAY_HIGHT)
+        index_texture = 0;
 
     
     static int folga = 0;
 
     folga++;
 
-    if (folga >= FOLGA_ILHAS && sorteia_ilha()) {
+    if (score < 1000000 && folga >= FOLGA_ILHAS && sorteia_ilha()) {
         folga = 0;
         ilha(node);
     }
     
-    if (score % 60 == 0) {
-        node->tem_chegada = 1;
-        fim_jogo = 1;
-        float bloco_x = ((float)DISPLAY_WEIGHT)/NCOLS;
-        float largura = (node->margem_dir - node->margem_esq);
-        
-        float dl = fabs(largura - w_chegada/bloco_x) * 0.5;
-        x_chegada = (node->margem_esq + dl) * bloco_x;
+    if (node->margem_esq > INTERVALO && (NCOLS - node->margem_dir) > INTERVALO ) {
+        if (score % 10 == 0) {
+            fim_jogo = true;
+        }
     }
 
 }
@@ -155,7 +164,7 @@ static void ilha (Node* node)
 {
     randomize(SEMENTE + time(NULL));
     
-    node->inicio_ilha = random_integer(node->margem_esq + 5, node->margem_dir - 5);
+    node->inicio_ilha = random_integer(node->margem_esq + 15, node->margem_dir - 15);
 }
 
 
@@ -196,9 +205,6 @@ Node* Queue_Insert(Node *head)
     head->prox = node;
 
     node->inicio_ilha = -1;
-
-    node->tem_chegada = 0;
-
 
     return node;
 }

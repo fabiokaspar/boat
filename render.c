@@ -1,13 +1,6 @@
 #include "render.h"
+#include "utils.h"
 
-
-void DesenhaImagem (SCREEN* s, char* caminho, int x, int y)
-{
-    ALLEGRO_BITMAP* img = s->img;
-    s->img = al_load_bitmap(caminho);
-    al_draw_bitmap(s->img, x, y, 0);
-    s->img = img;
-}
 
 
 void DesenhaRio (Node* head)
@@ -42,11 +35,13 @@ void DesenhaRio (Node* head)
             }
             else if (x1 < x2) {
                 al_draw_filled_triangle(x1, y, x1, y + bloco_y, x2, y + bloco_y, al_map_rgb(255, 230, 128));            
+
             }
 
             else {
                 //al_draw_filled_rectangle(x1 - 20, y, x1, y + bloco_y, al_map_rgb(136, 100, 40));
             }                
+            
             
             // margem direita
             x1 = node->margem_dir * bloco_x;
@@ -61,7 +56,10 @@ void DesenhaRio (Node* head)
         }
         
         if (node->inicio_ilha != -1) {
-            al_draw_filled_rectangle(node->inicio_ilha * bloco_x, y, (node->inicio_ilha + SIZE_ILHA) * bloco_x, y + bloco_y, al_map_rgb(255, 230, 128));
+            //al_draw_filled_rectangle(node->inicio_ilha * bloco_x, y, (node->inicio_ilha + SIZE_ILHA) * bloco_x, y + bloco_y, al_map_rgb(255, 230, 128));
+            al_draw_filled_rectangle(node->inicio_ilha * bloco_x, y, node->inicio_ilha * bloco_x + 50 , y + 20, al_map_rgb(255, 230, 128));
+            // no pixel y=75 começa a parte de terra da ilha 
+            al_draw_bitmap(ilhabmp, node->inicio_ilha * bloco_x, y-75, 0);
         }
 
         y += bloco_y;

@@ -6,7 +6,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <math.h>
 
@@ -16,29 +15,20 @@ typedef enum op
     HOWPLAY = 1, PLAY, EXIT
 } OPCAO;
 
+enum MYKEYS {
+    KEY_LEFT=0, KEY_RIGHT, KEY_UP
+};
 
-int menu();
-void play();
-void finalizaJogo();
-void inicializaJogo();
-void InicializaAllegro();
-void trataTecla (ALLEGRO_EVENT event);
-void display_frame();
-void print_pause_frame();
-void limpa_buffer_teclado (int nit);
-int detectaColisao ();
-void ajusta_barco();
-int teste_oito_vizinhos (ALLEGRO_BITMAP* bmp, Ponto centro, int raio);
-Ponto rotacao (Ponto p, float angle);
-
+typedef struct
+{
+    int x;
+    int y;
+} Ponto;
 
 ALLEGRO_FONT* fnt = NULL;
 ALLEGRO_FONT* fnt_score = NULL;
 ALLEGRO_EVENT_QUEUE* fila = NULL;
-ALLEGRO_DISPLAY* scr;
-ALLEGRO_BITMAP* barco;
-ALLEGRO_BITMAP* icon;
-ALLEGRO_BITMAP* img_init;
+
 
 int x, y;
 float angle;
@@ -48,51 +38,230 @@ long int record;
 short nlifes = 10;
 Ponto borda[8];
 
-RGB cor;
-int contador;
-float h, w;
-int flag;
-short pisca;
-bool pressed_keys[2] = {false, false};
 
-enum MYKEYS {
-    KEY_LEFT, KEY_RIGHT
-};
+short pisca;
+bool pressed_keys[3] = {false, false, false};
+
+double time_init_frame;
+int fps;
+
+
+
+int menu();
+void play();
+void finalizaJogo();
+void inicializaJogo();
+void inicializaAllegro();
+void trata_evento_tecla_direcao();
+void trata_evento_tecla_velocidade();
+void espera_tempo_frame();
+void display_frame();
+void print_pause_frame();
+void limpa_buffer_teclado (int nit);
+int detectaColisao ();
+void ajusta_barco();
+void initialize_time_init_frame();
+double get_time_after_frame();
+void load_corners_boat();
+void load_variables_global();
+int teste_oito_vizinhos (ALLEGRO_BITMAP* bmp, Ponto centro, int raio);
+Ponto rotacao (Ponto p, float angle);
 
 
 int main()
 {
-    InicializaAllegro();
+    inicializaAllegro();
+
+    load_variables_global();
+    load_bitmaps();
+    load_corners_boat();
+    
     inicializaJogo();
+
     play();
 
     return 0;
 }
 
-
-void inicializaJogo () {
-    contador = 0;
-    //ALLEGRO_EVENT prox_event;
-
-    x = 200, y = 400;
-    angle = 0;
+void load_variables_global() {
+    fim_jogo = false;
+    iymax_chegada = NROWS + 15;
+    iy_chegada = -30;
     stop = false;
     cor = (RGB){0, 127, 255};
+    fps = FPS;
+
+    x = 200, y = (DISPLAY_HIGHT * 6)/7;
+    angle = 0;
+}
+
+void load_corners_boat() {
+    borda[0] = (Ponto) {0, 0 - h/2 + 5};
+    borda[1] = (Ponto) {0, h/2 - 1};    
+    borda[2] = (Ponto) {0 - w/2, 0};       
+    borda[3] = (Ponto) {w/2 - 3, 0};        
+}
+
+
+double get_time_after_frame() {
+    return al_get_time() - time_init_frame;
+}
+
+void initialize_time_init_frame() {
+    time_init_frame = al_get_time();    
+}
+
+void play()
+{
+    ALLEGRO_EVENT event;
+    struct timeval tm_colisao;
+
+    // inicio da contagem da primeira colisão
+    gettimeofday(&tm_colisao, NULL);
+
+    display_frame();
     
-    scr = al_create_display(800, 450);
-    al_set_window_position(scr, 300, 100);
+
+    while (true)
+    {
+
+        if (!al_is_event_queue_empty(fila)) {
+
+            al_get_next_event (fila, &event);
+
+            if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
+                break;
+
+            // tecla ENTER foi pressionada 
+            if (event.type == ALLEGRO_EVENT_KEY_DOWN && 
+                event.keyboard.keycode == ALLEGRO_KEY_ENTER) {
+                
+                stop = !stop;
+                pressed_keys[KEY_LEFT] = false;
+                pressed_keys[KEY_RIGHT] = false;
+                pressed_keys[KEY_UP] = false;
+            }
+        }
+
+        if (!stop)
+        {            
+            if (event.type == ALLEGRO_EVENT_KEY_UP) {
+
+                if (event.keyboard.keycode == ALLEGRO_KEY_LEFT)
+                    pressed_keys[KEY_LEFT] = false;
+                
+                else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT)
+                    pressed_keys[KEY_RIGHT] = false;
+
+                else if (event.keyboard.keycode == ALLEGRO_KEY_UP)
+                    pressed_keys[KEY_UP] = false;
+            }
+                
+            else if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
+
+                if (event.keyboard.keycode == ALLEGRO_KEY_LEFT)
+                    pressed_keys[KEY_LEFT] = true;
+                
+                else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT)
+                    pressed_keys[KEY_RIGHT] = true;
+
+                else if (event.keyboard.keycode == ALLEGRO_KEY_UP) {
+                    pressed_keys[KEY_UP] = true;
+                }
+            }
+            
+            atualizaRio(head);                
+
+            trata_evento_tecla_velocidade();
+            
+            trata_evento_tecla_direcao();
+
+            espera_tempo_frame();
+
+            display_frame();
+               
+            if (detectaColisao() && relogio(tm_colisao) > 0.3) {
+                pisca = 5;
+                
+                nlifes--;
+
+                if (nlifes < 0)
+                    nlifes = 0;
+                
+                // inicio da contagem da proxima colisão
+                gettimeofday(&tm_colisao, NULL);
+            } 
+        }
+            
+        else {
+            print_pause_frame(); 
+        }         
+    }
+
+    finalizaJogo();
+}
+
+void espera_tempo_frame() {
+    if (get_time_after_frame() < (1.0/fps)) {
+        al_rest(fabs((1.0/fps) - get_time_after_frame()));
+    }
+}
+
+void trata_evento_tecla_velocidade() {
+    if (pressed_keys[KEY_UP] && fps < 140) {
+        fps += 20;
+    }
+
+    else if (!pressed_keys[KEY_UP] && fps > FPS) {
+        fps = FPS;
+    }
+}
+
+void trata_evento_tecla_direcao() {
+    if (pressed_keys[KEY_LEFT] ^ pressed_keys[KEY_RIGHT]  ) 
+    {
+        if (pressed_keys[KEY_LEFT]) {
+            x -= 7;
+
+            if (angle > -ALLEGRO_PI/9)
+            {
+                // 10 graus
+                angle -= ALLEGRO_PI/18;
+            }
+        }
+
+        if (pressed_keys[KEY_RIGHT]) {
+            x += 7;
+
+            if (angle < ALLEGRO_PI/9)
+            {
+                angle += ALLEGRO_PI/18;
+            }
+        }
+    }
+
+    else
+    {
+        ajusta_barco();
+    }
+
+}
+
+void inicializaJogo () {
+    screen = al_create_display(DISPLAY_WEIGHT, DISPLAY_HIGHT);
+    al_set_window_position(screen, 300, 100);
     al_draw_bitmap(al_load_bitmap("images/boattrace.png"), 0, 0, 0);
-    icon = al_load_bitmap("images/icon.png");
-    al_set_display_icon(scr, icon);
-    al_set_window_title(scr, "Boat Trace");
+
+    al_set_display_icon(screen, icon);
+    al_set_window_title(screen, "Boat Trace");
     al_flip_display();
 
     al_rest(1);
     
-    al_resize_display(scr, DISPLAY_WEIGHT, DISPLAY_HIGHT);
-    al_set_window_position(scr, 400, 50);
+    al_resize_display(screen, DISPLAY_WEIGHT, DISPLAY_HIGHT);
+    al_set_window_position(screen, 400, 50);
 
-    if(!scr)
+    if(!screen)
     {
         fprintf(stderr, "Falha ao criar a janela\n");
         return ;
@@ -100,14 +269,10 @@ void inicializaJogo () {
 
     al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE));
     
-    barco = al_load_bitmap("images/canoa.png");
-
-    w = al_get_bitmap_width(barco);
-    h = al_get_bitmap_height(barco);
 
     fila = al_create_event_queue();
         
-    al_register_event_source(fila, al_get_display_event_source(scr));
+    al_register_event_source(fila, al_get_display_event_source(screen));
     al_register_event_source(fila, al_get_keyboard_event_source());
 
 
@@ -117,27 +282,145 @@ void inicializaJogo () {
         exit(0);
     }
 
-    al_draw_bitmap(barco, x, y, 0);
-
     head = geraRio();
     
-    borda[0] = (Ponto) {0, 0 - h/2 + 5};    //ok
-
-    borda[1] = (Ponto) {0, h/2 - 1};    //ok
-
-    borda[2] = (Ponto) {0 - w/2, 0};        //ok
-
-    borda[3] = (Ponto) {w/2 - 3, 0};    //ok
+    //printf("Starting ...\n");    
+}
 
 
-    //printf("Loading ...\n");
-    //al_rest(2);
-    printf("Starting ...\n");
+void display_frame() {
+    al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE));
+    DesenhaRio(head);
+    char score_str[30];
+    char life_str[5];
+    Node* node;
+
+
+    if (!pisca) {
+        al_draw_rotated_bitmap (barco, w/2, h/2, x, y, angle, 0);
+    }
+
+    else {
+        //al_draw_tinted_bitmap(bitmap, al_map_rgba_f(1, 1, 1, 0.5), x, y, 0);
+        al_draw_tinted_rotated_bitmap(barco, al_map_rgba_f(1, 1, 1, 0.5),
+            w/2, h/2, x, y, angle, 0);
+        
+        pisca--;
+    }
+
+    if (fim_jogo && iy_chegada < iymax_chegada) {        
+        //al_draw_scaled_bitmap(chegada, 0, 0, w_chegada, h_chegada, 1 * BLOCO_X, iy_chegada * BLOCO_Y, 
+        //(NCOLS-2) * BLOCO_X, h_chegada/2, 0);
+        
+        iy_chegada++;
+
+        if (iy_chegada == iymax_chegada) {
+            fim_jogo = false;
+            iy_chegada = -30;
+        }
+    }
     
+
+    al_draw_filled_rectangle(0, DISPLAY_HIGHT-20, DISPLAY_WEIGHT, DISPLAY_HIGHT, al_map_rgb(0,0,0));
+
+    sprintf(score_str, "score: %ld", score);
+    score++;
+
+    if (score > 1000000)
+        score = 1000000;
+
+    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), DISPLAY_WEIGHT - 50, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, score_str);
+    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), 70, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, "record:");
+
+    sprintf(life_str, "%d", nlifes);
+    
+    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), DISPLAY_WEIGHT/2-10, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, life_str);
+
+    al_draw_bitmap(al_load_bitmap("images/life.png"), DISPLAY_WEIGHT/2, DISPLAY_HIGHT-20, 0);
+
+
+    al_flip_display();
+    
+    initialize_time_init_frame();
+}
+
+
+void ajusta_barco() {
+    if (angle > 0) 
+    {
+        angle -= ALLEGRO_PI/18;
+        
+        if (angle < 0)
+            angle = 0;
+    }
+
+    if (angle < 0)
+    {
+        angle += ALLEGRO_PI/18;
+
+        if (angle > 0)
+            angle = 0;
+    }    
+}
+
+void inicializaAllegro()
+{
+    if (!al_init())
+    {
+        fprintf(stderr, "Falha ao inicializar a Allegro 5\n");
+        return ;
+    }
+
+    if (!al_init_image_addon())
+    {
+        fprintf(stderr, "Falha ao inicializar a add-on_image Allegro 5\n");
+        return ;
+    }
+
+    if (!al_init_primitives_addon())
+    {
+        fprintf(stderr, "Falha ao inicializar add-on de primitivas.\n");
+        return ;
+    }
+
+    if (!al_install_keyboard())
+    {
+        fprintf(stderr, "Falha ao inicializar teclado\n");
+        return ;
+    }
+
+    al_init_font_addon();
+
+    if (!al_init_ttf_addon())
+    {
+        fprintf(stderr, "Allegro_ttf já inicializada!\n");
+        return ;
+    }
+    
+    fnt = al_load_font("images/FreeSerif.ttf", 30, 0);
+    if (!fnt)
+    {
+        fprintf(stderr, "Falha ao carregar fonte.\n");
+        exit(0);
+    }
+
+    fnt_score = al_load_font("images/FreeSerif.ttf", 20, 0);
+}
+
+void finalizaJogo() {
+    DesalocaAmbiente(head);
+    al_destroy_event_queue(fila);
+    al_destroy_bitmap(barco);
+    al_destroy_display(screen);
+}
+
+void print_pause_frame() {
+    al_draw_text(fnt, al_map_rgb(0, 0, 0), DISPLAY_WEIGHT/2, DISPLAY_HIGHT/2.5, ALLEGRO_ALIGN_CENTRE, "PAUSE");
+    al_flip_display();
 }
 
 int detectaColisao () {
-    ALLEGRO_BITMAP* bmp = al_get_backbuffer(scr);
+    ALLEGRO_BITMAP* bmp = al_get_backbuffer(screen);
     Ponto p;
     unsigned char r, g, b;
     RGB rgb;
@@ -201,277 +484,9 @@ Ponto rotacao (Ponto p, float angle) {
     return p2;
 }
 
-
-void display_frame() {
-    RGB_SCREEN(cor);
-    DesenhaRio(head);
-    char score_str[30];
-    char life_str[5];
-    Node* node;
-    float bloco_y = ((float)DISPLAY_HIGHT)/NROWS;
-    float bloco_x = ((float)DISPLAY_WEIGHT)/NCOLS;
-
-
-    if (pisca) {
-        //al_draw_tinted_bitmap(bitmap, al_map_rgba_f(1, 1, 1, 0.5), x, y, 0);
-        al_draw_tinted_rotated_bitmap(barco, al_map_rgba_f(1, 1, 1, 0.5),
-            w/2, h/2, x, y, angle, 0);
-        
-        pisca--;
-    }
-
-    else {
-        al_draw_rotated_bitmap (barco, w/2, h/2, x, y, angle, 0);
-    }
-
-    if (fim_jogo && conta_passos < passos_chegada) {
-        
-        al_draw_bitmap_region(chegada, 0, 0, w_chegada, h_chegada, x_chegada, conta_passos * bloco_y, 0);
-        conta_passos++;
-
-        if (conta_passos == passos_chegada) {
-            fim_jogo = 0;
-            conta_passos = -30;
-        }    
-    }
-    
-
-    al_draw_filled_rectangle(0, DISPLAY_HIGHT-20, DISPLAY_WEIGHT, DISPLAY_HIGHT, al_map_rgb(0,0,0));
-
-    sprintf(score_str, "score: %ld", score);
-    score++;
-
-    if (score > 1000000)
-        score = 1000000;
-
-    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), DISPLAY_WEIGHT - 50, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, score_str);
-    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), 70, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, "record:");
-
-    sprintf(life_str, "%d", nlifes);
-    
-    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), DISPLAY_WEIGHT/2-10, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, life_str);
-
-    al_draw_bitmap(al_load_bitmap("images/life.png"), DISPLAY_WEIGHT/2, DISPLAY_HIGHT-20, 0);
-
-    float times;
-
-    al_flip_display();
-    
-    if (score < 10)
-        times = 0.01;
-    else 
-        times = 0.0185;
-
-    al_rest(times);
-    //al_rest(0.005);
-}
-
-void play()
-{
-    ALLEGRO_EVENT event;
-    ALLEGRO_EVENT prox_event;
-    contador = 0;
-    struct timeval tm_colisao;
-
-    // inicio da contagem da primeira colisão
-    gettimeofday(&tm_colisao, NULL);
-
-    display_frame();
-
-    while (1)
-    {
-        if (!al_is_event_queue_empty(fila)) {
-
-            al_get_next_event (fila, &prox_event);
-
-            if (prox_event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
-                break;
-
-            if (prox_event.keyboard.keycode != ALLEGRO_KEY_LEFT &&
-                prox_event.keyboard.keycode != ALLEGRO_KEY_RIGHT &&
-                prox_event.keyboard.keycode != ALLEGRO_KEY_ENTER) {
-
-                continue;
-            }
-
-
-            if (prox_event.keyboard.keycode != ALLEGRO_KEY_ENTER && stop == false) { 
-                
-                if (prox_event.type == ALLEGRO_EVENT_KEY_UP) {
-                    contador = 0;
-
-                    if (prox_event.keyboard.keycode == ALLEGRO_KEY_LEFT)
-                        pressed_keys[KEY_LEFT] = false;
-                    else if (prox_event.keyboard.keycode == ALLEGRO_KEY_RIGHT)
-                        pressed_keys[KEY_RIGHT] = false;
-
-                }
-                
-                else if (prox_event.type == ALLEGRO_EVENT_KEY_DOWN) {
-                    event = prox_event;            
-                    contador = 1;
-
-                    if (prox_event.keyboard.keycode == ALLEGRO_KEY_LEFT)
-                        pressed_keys[KEY_LEFT] = true;
-                    else if (prox_event.keyboard.keycode == ALLEGRO_KEY_RIGHT)
-                        pressed_keys[KEY_RIGHT] = true;
-                }
-
-            }
-
-            // tecla ENTER foi pressionada 
-            else if (prox_event.keyboard.keycode == ALLEGRO_KEY_ENTER &&
-                prox_event.type == ALLEGRO_EVENT_KEY_DOWN) {
-                stop = !stop;
-                contador = 0;                    
-            }
-
-        }
-
-        if (!stop)
-        {
-            limpa_buffer_teclado(5);
-            atualizaRio(head);                
-
-            trataTecla(event);
-            
-            display_frame();
-               
-            if (detectaColisao() && relogio(tm_colisao) > 0.3) {
-                //printf("COLISÃO! = %d\n", flag++);
-                pisca = 5;
-                
-                nlifes--;
-
-                if (nlifes < 0)
-                    nlifes = 0;
-                
-                // inicio da contagem da proxima colisão
-                gettimeofday(&tm_colisao, NULL);
-            } 
-            
-        }
-            
-        else {
-            print_pause_frame(); 
-        } 
-        
-    }
-
-    finalizaJogo();
-}
-
-void trataTecla (ALLEGRO_EVENT event) {
-    if ( (pressed_keys[KEY_LEFT] ^ pressed_keys[KEY_RIGHT] ) ) {
-        switch (event.keyboard.keycode) 
-        {
-            case ALLEGRO_KEY_LEFT:
-                x -= 7;
-
-                if (angle > -ALLEGRO_PI/9)
-                {
-                    // 10 graus
-                    angle -= ALLEGRO_PI/18;
-                }
-
-                break;
-             
-             case ALLEGRO_KEY_RIGHT:
-                x += 7;
-
-                if (angle < ALLEGRO_PI/9)
-                {
-                    angle += ALLEGRO_PI/18;
-                }
-                
-                break;
-        }    
-    }
-
-    else 
-    {
-        ajusta_barco();
-    }
-}
-
-void ajusta_barco() {
-    if(angle > 0) 
-    {
-        angle -= ALLEGRO_PI/18;
-        
-        if(angle < 0)
-            angle = 0;
-    }
-
-    if(angle < 0)
-    {
-        angle += ALLEGRO_PI/18;
-
-        if(angle > 0)
-            angle = 0;
-    }    
-}
-
-void InicializaAllegro()
-{
-    if (!al_init())
-    {
-        fprintf(stderr, "Falha ao inicializar a Allegro 5\n");
-        return ;
-    }
-
-    if (!al_init_image_addon())
-    {
-        fprintf(stderr, "Falha ao inicializar a add-on_image Allegro 5\n");
-        return ;
-    }
-
-    if (!al_init_primitives_addon())
-    {
-        fprintf(stderr, "Falha ao inicializar add-on de primitivas.\n");
-        return ;
-    }
-
-    if (!al_install_keyboard())
-    {
-        fprintf(stderr, "Falha ao inicializar teclado\n");
-        return ;
-    }
-
-    al_init_font_addon();
-
-    if (!al_init_ttf_addon())
-    {
-        fprintf(stderr, "Allegro_ttf já inicializada!\n");
-        return ;
-    }
-    
-    fnt = al_load_font("images/FreeSerif.ttf", 30, 0);
-    fnt_score = al_load_font("images/FreeSerif.ttf", 20, 0);
-    
-    if (!fnt)
-    {
-        fprintf(stderr, "Falha ao carregar fonte.\n");
-        exit(0);
-    }
-}
-
-void finalizaJogo() {
-    DesalocaAmbiente(head);
-    al_destroy_event_queue(fila);
-    al_destroy_bitmap(barco);
-    al_destroy_display(scr);
-}
-
-void print_pause_frame() {
-    al_draw_text(fnt, al_map_rgb(0, 0, 0), DISPLAY_WEIGHT/2, DISPLAY_HIGHT/2.5, ALLEGRO_ALIGN_CENTRE, "PAUSE");
-    al_flip_display();
-}
-
 void limpa_buffer_teclado (int nit) {
     int i;
     for (i = 0; i < nit; i++) {
         __fpurge(stdin);
     }
 }
-

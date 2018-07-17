@@ -1,44 +1,38 @@
 #ifndef AMBIENTE_H_INCLUDED
 #define AMBIENTE_H_INCLUDED 
 
-
+#include <stdbool.h>
 #include <allegro5/allegro.h>
-#include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_image.h>
+#include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
 
 
+
 /* Macros de configuração do jogo   */
-#define MARGEM_ESQ 4
-#define MARGEM_DIR 76
+
+#define DISPLAY_HIGHT 550
+#define DISPLAY_WEIGHT 560
+#define NROWS 20
+#define NCOLS 80
+#define MARGEM_ESQ 8
+#define MARGEM_DIR 72
 #define INTERVALO 20
 #define LARGURA_MAX 50
+#define LARGURA_MIN 25
 #define LIM_ESQ (MARGEM_ESQ + INTERVALO)
 #define LIM_DIR (MARGEM_DIR - INTERVALO)
 #define SIZE_ILHA 10
-#define PROBABILITY_ILHA 0.8
+#define PROBABILITY_ILHA 1.0
 #define SEMENTE 5
 #define FOLGA_ILHAS 30
 #define FOLGA_OBJ 40
-#define FPS 120
+#define FPS 200
+#define BLOCO_X ((float)(1.0 * DISPLAY_WEIGHT)/NCOLS)
+#define BLOCO_Y ((float)(1.0 * DISPLAY_HIGHT)/NROWS)
 
 
-//#define DISPLAY_HIGHT 540
-//#define QUADRADO_PIXELS 2
-//#define DISPLAY_WEIGHT 480
-
-#define DISPLAY_HIGHT 500
-#define NROWS 30
-
-#define DISPLAY_WEIGHT 560
-#define NCOLS 80
-
-typedef struct
-{
-	int x;
-	int y;
-} Ponto;
 
 typedef struct node
 {
@@ -47,20 +41,14 @@ typedef struct node
 	int inicio_ilha;
 	struct node* prox;
 	struct node* ant;
-	int tem_chegada;
+	int index_texture;
 } Node;
 
 Node* head;
+bool fim_jogo;
 long int score;
-int passos_chegada;
-int conta_passos;
-int fim_jogo;
-float x_chegada;
-
-ALLEGRO_BITMAP* chegada;
-int h_chegada;
-int w_chegada;
-
+int iymax_chegada;
+int iy_chegada;
 
 
 Node* geraRio();

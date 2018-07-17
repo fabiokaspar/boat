@@ -1,14 +1,27 @@
 
-#include <stdlib.h>
 #include <stdio.h>
 #include "utils.h"
 
+void load_bitmaps() {
+    icon = al_load_bitmap("images/icon.png");
+    chegada = al_load_bitmap("images/chegada.png");
+    barco = al_load_bitmap("images/barco.png");
+
+    w = al_get_bitmap_width(barco);
+    h = al_get_bitmap_height(barco);
+
+    /*h_chegada = al_get_bitmap_height(chegada);
+    w_chegada = al_get_bitmap_width(chegada);
+    */
+
+    ilhabmp = al_load_bitmap("images/ilha.png");
+}
 
 void* MallocSafe(size_t bytes)
 {
     void* p = malloc(bytes);
 
-    if(p != NULL) return p;
+    if (p != NULL) return p;
 
     else
     {
@@ -16,7 +29,6 @@ void* MallocSafe(size_t bytes)
         exit(EXIT_FAILURE);
     }
 }
-
 
 float relogio (struct timeval inicio) {
     struct timeval fim;

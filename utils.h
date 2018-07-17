@@ -3,7 +3,23 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include <allegro5/allegro.h>
+#include <allegro5/allegro_image.h>
 
+ALLEGRO_BITMAP* mesqc;
+ALLEGRO_BITMAP* mesqd;
+ALLEGRO_BITMAP* chegada;
+ALLEGRO_BITMAP* barco;
+ALLEGRO_BITMAP* icon;
+ALLEGRO_BITMAP* ilhabmp;
+
+int h;
+int w;
+
+int h_chegada;
+int w_chegada;
+
+void load_bitmaps();
 
 void* MallocSafe(size_t bytes);
 
