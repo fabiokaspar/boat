@@ -3,6 +3,7 @@
 #include "utils.h"
 
 void load_bitmaps() {
+    //al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
     icon = al_load_bitmap("images/icon.png");
     chegada = al_load_bitmap("images/chegada.png");
     barco = al_load_bitmap("images/barco.png");

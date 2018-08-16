@@ -10,6 +10,7 @@
 #include <math.h>
 
 
+
 typedef enum op
 {
     HOWPLAY = 1, PLAY, EXIT
@@ -19,15 +20,13 @@ enum MYKEYS {
     KEY_LEFT=0, KEY_RIGHT, KEY_UP
 };
 
-typedef struct
-{
-    int x;
-    int y;
-} Ponto;
 
 ALLEGRO_FONT* fnt = NULL;
 ALLEGRO_FONT* fnt_score = NULL;
 ALLEGRO_EVENT_QUEUE* fila = NULL;
+
+static ALLEGRO_MUTEX* mutex = NULL;
+//static ALLEGRO_THREAD* threads[NTHREADS];
 
 
 int x, y;
@@ -36,7 +35,7 @@ bool stop;
 
 long int record;
 short nlifes = 10;
-Ponto borda[8];
+Pixel borda[8];
 
 
 short pisca;
@@ -44,6 +43,7 @@ bool pressed_keys[3] = {false, false, false};
 
 double time_init_frame;
 int fps;
+
 
 
 
@@ -62,11 +62,10 @@ int detectaColisao ();
 void ajusta_barco();
 void initialize_time_init_frame();
 double get_time_after_frame();
-void load_corners_boat();
 void load_variables_global();
-int teste_oito_vizinhos (ALLEGRO_BITMAP* bmp, Ponto centro, int raio);
-Ponto rotacao (Ponto p, float angle);
-
+int teste_oito_vizinhos (Pixel centro);
+Pixel rotacao (Pixel p, float angle);
+int ehMargem(Pixel p);
 
 int main()
 {
@@ -74,7 +73,6 @@ int main()
 
     load_variables_global();
     load_bitmaps();
-    load_corners_boat();
     
     inicializaJogo();
 
@@ -84,22 +82,124 @@ int main()
 }
 
 void load_variables_global() {
-    fim_jogo = false;
-    iymax_chegada = NROWS + 15;
-    iy_chegada = -30;
     stop = false;
-    cor = (RGB){0, 127, 255};
     fps = FPS;
-
-    x = 200, y = (DISPLAY_HIGHT * 6)/7;
+    x = 200, y = (DISPLAY_HIGHT * 4)/5;
     angle = 0;
+
+    // cantos do barco
+    borda[0] = (Pixel) {0, 0 - h/2};
+    borda[1] = (Pixel) {0, 0 + h/2};    
+    borda[2] = (Pixel) {0 - w/2, 0};       
+    borda[3] = (Pixel) {0 + w/2, 0};
 }
 
-void load_corners_boat() {
-    borda[0] = (Ponto) {0, 0 - h/2 + 5};
-    borda[1] = (Ponto) {0, h/2 - 1};    
-    borda[2] = (Ponto) {0 - w/2, 0};       
-    borda[3] = (Ponto) {w/2 - 3, 0};        
+
+int detectaColisao () {
+    //ALLEGRO_BITMAP* bmp = al_get_backbuffer(screen);
+    Pixel p;
+    short i;
+
+    for (i = 0; i < 4; i++) {
+        p = rotacao(borda[i], angle);
+        
+        //al_draw_circle(p.x, p.y, 1, al_map_rgb(0,0,0), 1);
+        
+        if (teste_oito_vizinhos(p)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int teste_oito_vizinhos (Pixel centro) {
+    
+    // rgb da areia = (255, 230, 128)
+    Pixel v;
+
+    v.x = centro.x - 1, v.y = centro.y - 1;
+    if (ehMargem(v)) { return 1;}
+
+    v.x = centro.x - 1, v.y = centro.y;
+    if (ehMargem(v)) { return 1;}
+    
+    v.x = centro.x - 1, v.y = centro.y + 1;
+    if (ehMargem(v)) { return 1;}
+
+    v.x = centro.x, v.y = centro.y - 1;
+    if (ehMargem(v)) { return 1;}
+
+    v.x = centro.x, v.y = centro.y + 1;
+    if (ehMargem(v)) { return 1;}
+
+    v.x = centro.x + 1, v.y = centro.y - 1;
+    if (ehMargem(v)) { return 1;}
+
+    v.x = centro.x + 1, v.y = centro.y;
+    if (ehMargem(v)) { return 1;}
+
+    v.x = centro.x + 1, v.y = centro.y + 1;
+    if (ehMargem(v)) { return 1;}
+
+    v.x = centro.x, v.y = centro.y;
+    if (ehMargem(v)) { return 1;}
+
+    return 0;
+}
+
+int ehMargem(Pixel p) {
+    int bloco_y = DISPLAY_HIGHT/NROWS;
+    int bloco_x = DISPLAY_WEIGHT/NCOLS;
+    int linha = ceil((1.0 * p.y)/bloco_y);
+    int i;
+    Node* node = head;
+
+    if (p.x <= MARGEM_ESQ * bloco_x || p.x >= MARGEM_DIR * bloco_x)
+        return 1;
+
+    for (i = 0; i < linha; i++)
+        node = node->prox;
+
+    int x = node->margem_esq * bloco_x;
+
+    if (p.x <= x) return 1;
+
+    x = node->margem_dir * bloco_x;
+
+    if (p.x >= x) return 1;
+
+    // testa se eh ilha
+    
+    if (node->inicio_ilha != -1) {
+        x = node->inicio_ilha * bloco_x;
+
+        if (p.x > x + bloco_x && p.x < x + 82-bloco_x ) {
+            al_draw_bitmap(ilhabmp, x, ceil(p.y)-100, 0);
+            
+            return 1;
+        }
+    }
+    
+    return 0;
+}
+
+
+// em ralação a origem do plano xoy
+// matriz de rotação:
+// M = [cos(beta) -sen(-beta) ]
+//     [sen(-beta)  cos(beta) ]
+Pixel rotacao (Pixel p, float angle) {
+    Pixel p2;
+    float a, b;
+
+    a = cos(angle);
+    b = sin(angle);
+
+    p2.x = x + (int) (a * p.x - b * p.y);
+    p2.y = y + (int) (b * p.x + a * p.y);
+
+    return p2;
 }
 
 
@@ -121,12 +221,13 @@ void play()
 
     display_frame();
     
+    //printf("BY = %d\n", DISPLAY_HIGHT/NROWS);
+    //printf("BX = %d\n", DISPLAY_WEIGHT/NCOLS);
 
     while (true)
     {
-
-        if (!al_is_event_queue_empty(fila)) {
-
+        if (!al_is_event_queue_empty(fila)) 
+        {
             al_get_next_event (fila, &event);
 
             if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
@@ -176,11 +277,12 @@ void play()
             
             trata_evento_tecla_direcao();
 
-            espera_tempo_frame();
+            //espera_tempo_frame();
 
             display_frame();
                
-            if (detectaColisao() && relogio(tm_colisao) > 0.3) {
+            if (detectaColisao() && relogio(tm_colisao) > 0.2) 
+            {
                 pisca = 5;
                 
                 nlifes--;
@@ -190,7 +292,9 @@ void play()
                 
                 // inicio da contagem da proxima colisão
                 gettimeofday(&tm_colisao, NULL);
-            } 
+            }
+
+            //al_rest(0.15);
         }
             
         else {
@@ -200,6 +304,52 @@ void play()
 
     finalizaJogo();
 }
+
+void display_frame() {
+    //al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE));
+    char score_str[30];
+    char life_str[5];
+    Node* node;
+
+    main_render(head);
+
+    if (!pisca) {
+        al_draw_rotated_bitmap (barco, w/2, h/2, x, y, angle, 0);
+        //al_draw_line(x+w/2, 0, x+w/2, DISPLAY_HIGHT, al_map_rgb(0,0,0), 1);
+    }
+
+    else {
+        //al_draw_tinted_bitmap(bitmap, al_map_rgba_f(1, 1, 1, 0.5), x, y, 0);
+        al_draw_tinted_rotated_bitmap(barco, al_map_rgba_f(1, 1, 1, 0.5),
+            w/2, h/2, x, y, angle, 0);
+        
+        pisca--;
+        //al_rest(0.01);
+    }
+
+    al_draw_filled_rectangle(0, DISPLAY_HIGHT-25, DISPLAY_WEIGHT, DISPLAY_HIGHT, al_map_rgb(0,0,0));
+
+    sprintf(score_str, "score : %ld", score);
+    score++;
+
+    if (score > 1000000)
+        score = 1000000;
+
+    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), DISPLAY_WEIGHT-50, DISPLAY_HIGHT-25, ALLEGRO_ALIGN_RIGHT, score_str);
+    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), 70, DISPLAY_HIGHT-25, ALLEGRO_ALIGN_RIGHT, "record :");
+
+    sprintf(life_str, "%d", nlifes);
+    
+    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), DISPLAY_WEIGHT/2-10, DISPLAY_HIGHT-25, ALLEGRO_ALIGN_RIGHT, life_str);
+
+    al_draw_bitmap(al_load_bitmap("images/life.png"), DISPLAY_WEIGHT/2, DISPLAY_HIGHT-25, 0);
+
+
+    al_flip_display();
+    
+    initialize_time_init_frame();
+}
+
 
 void espera_tempo_frame() {
     if (get_time_after_frame() < (1.0/fps)) {
@@ -253,10 +403,10 @@ void inicializaJogo () {
     al_draw_bitmap(al_load_bitmap("images/boattrace.png"), 0, 0, 0);
 
     al_set_display_icon(screen, icon);
-    al_set_window_title(screen, "Boat Trace");
+    al_set_window_title(screen, "River");
     al_flip_display();
 
-    al_rest(1);
+    al_rest(0.3);
     
     al_resize_display(screen, DISPLAY_WEIGHT, DISPLAY_HIGHT);
     al_set_window_position(screen, 400, 50);
@@ -267,9 +417,8 @@ void inicializaJogo () {
         return ;
     }
 
-    al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE));
+    //al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE));
     
-
     fila = al_create_event_queue();
         
     al_register_event_source(fila, al_get_display_event_source(screen));
@@ -282,68 +431,8 @@ void inicializaJogo () {
         exit(0);
     }
 
-    head = geraRio();
-    
-    //printf("Starting ...\n");    
+    head = geraRio();    
 }
-
-
-void display_frame() {
-    al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE));
-    DesenhaRio(head);
-    char score_str[30];
-    char life_str[5];
-    Node* node;
-
-
-    if (!pisca) {
-        al_draw_rotated_bitmap (barco, w/2, h/2, x, y, angle, 0);
-    }
-
-    else {
-        //al_draw_tinted_bitmap(bitmap, al_map_rgba_f(1, 1, 1, 0.5), x, y, 0);
-        al_draw_tinted_rotated_bitmap(barco, al_map_rgba_f(1, 1, 1, 0.5),
-            w/2, h/2, x, y, angle, 0);
-        
-        pisca--;
-    }
-
-    if (fim_jogo && iy_chegada < iymax_chegada) {        
-        //al_draw_scaled_bitmap(chegada, 0, 0, w_chegada, h_chegada, 1 * BLOCO_X, iy_chegada * BLOCO_Y, 
-        //(NCOLS-2) * BLOCO_X, h_chegada/2, 0);
-        
-        iy_chegada++;
-
-        if (iy_chegada == iymax_chegada) {
-            fim_jogo = false;
-            iy_chegada = -30;
-        }
-    }
-    
-
-    al_draw_filled_rectangle(0, DISPLAY_HIGHT-20, DISPLAY_WEIGHT, DISPLAY_HIGHT, al_map_rgb(0,0,0));
-
-    sprintf(score_str, "score: %ld", score);
-    score++;
-
-    if (score > 1000000)
-        score = 1000000;
-
-    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), DISPLAY_WEIGHT - 50, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, score_str);
-    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), 70, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, "record:");
-
-    sprintf(life_str, "%d", nlifes);
-    
-    al_draw_text(fnt_score, al_map_rgb(255, 255, 255), DISPLAY_WEIGHT/2-10, DISPLAY_HIGHT-20, ALLEGRO_ALIGN_RIGHT, life_str);
-
-    al_draw_bitmap(al_load_bitmap("images/life.png"), DISPLAY_WEIGHT/2, DISPLAY_HIGHT-20, 0);
-
-
-    al_flip_display();
-    
-    initialize_time_init_frame();
-}
-
 
 void ajusta_barco() {
     if (angle > 0) 
@@ -397,14 +486,16 @@ void inicializaAllegro()
         return ;
     }
     
-    fnt = al_load_font("images/FreeSerif.ttf", 30, 0);
+    fnt = al_load_font("images/gunplay.ttf", 40, 0);
+    //fnt = al_load_font("images/atari1.ttf", 40, 0);
     if (!fnt)
     {
         fprintf(stderr, "Falha ao carregar fonte.\n");
         exit(0);
     }
 
-    fnt_score = al_load_font("images/FreeSerif.ttf", 20, 0);
+    fnt_score = al_load_font("images/digiface.ttf", 20, 0);
+    al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
 }
 
 void finalizaJogo() {
@@ -415,73 +506,9 @@ void finalizaJogo() {
 }
 
 void print_pause_frame() {
-    al_draw_text(fnt, al_map_rgb(0, 0, 0), DISPLAY_WEIGHT/2, DISPLAY_HIGHT/2.5, ALLEGRO_ALIGN_CENTRE, "PAUSE");
+    //al_draw_filled_rectangle(DISPLAY_WEIGHT/2.0, DISPLAY_HIGHT/2.5, DISPLAY_WEIGHT/2.0 + 100, DISPLAY_HIGHT/2.5 + 100, al_map_rgb(255,255,255));
+    al_draw_text(fnt, al_map_rgb(0, 0, 0), DISPLAY_WEIGHT/2, DISPLAY_HIGHT/2.5, ALLEGRO_ALIGN_CENTRE, "P A U S E");
     al_flip_display();
-}
-
-int detectaColisao () {
-    ALLEGRO_BITMAP* bmp = al_get_backbuffer(screen);
-    Ponto p;
-    unsigned char r, g, b;
-    RGB rgb;
-    ALLEGRO_COLOR cor;
-    short i, dr;
-
-    for (i = 0; i < 4; i++) {
-        p = rotacao(borda[i], angle);
-        
-        for (dr = 1; dr < 4; dr++) {
-            if (teste_oito_vizinhos(bmp, p, dr)) {
-                return 1;
-            }
-        }
-    }
-
-    return 0;
-}
-
-int teste_oito_vizinhos (ALLEGRO_BITMAP* bmp, Ponto centro, int raio) {
-    int i;
-    unsigned char r, g, b;
-    ALLEGRO_COLOR cor[8];
-
-    cor[0] = al_get_pixel(bmp, centro.x - raio, centro.y - raio);
-    cor[1] = al_get_pixel(bmp, centro.x - raio, centro.y);
-    cor[2] = al_get_pixel(bmp, centro.x - raio, centro.y + raio);
-    cor[3] = al_get_pixel(bmp, centro.x, centro.y - raio);
-    cor[4] = al_get_pixel(bmp, centro.x, centro.y + raio);
-    cor[5] = al_get_pixel(bmp, centro.x + raio, centro.y - raio);
-    cor[6] = al_get_pixel(bmp, centro.x + raio, centro.y);
-    cor[7] = al_get_pixel(bmp, centro.x + raio, centro.y + raio);
-    
-    for (i = 0; i < 8; i++) {
-        al_unmap_rgb(cor[i], &r, &g, &b);
-        
-        // rgb da areia = (255, 230, 128)
-        if (r == 255 && g == 230 && b == 128) {
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-
-// em ralação a origem do plano xoy
-// matriz de rotação:
-// M = [cos(beta) -sen(-beta) ]
-//     [sen(-beta)  cos(beta) ]
-Ponto rotacao (Ponto p, float angle) {
-    Ponto p2;
-    float a, b;
-
-    a = cos(angle);
-    b = sin(angle);
-
-    p2.x = x + (int) (a * p.x - b * p.y);
-    p2.y = y + (int) (b * p.x + a * p.y);
-
-    return p2;
 }
 
 void limpa_buffer_teclado (int nit) {

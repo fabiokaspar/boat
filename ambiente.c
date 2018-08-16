@@ -78,15 +78,16 @@ Node* geraRio()
 {
     int i;
     
-
     Node* head = Queue_Init();
     /* gera as margens */
 
-    for (i = 0; i < NROWS; i++)
+    for (i = 0; i < NROWS + 2; i++)
     {
         Node* node = Queue_Insert(head);
 
         PreencheLinha(node);
+
+        margem[i] = *node;
     }
 
     return head;
@@ -103,6 +104,12 @@ void atualizaRio(Node *head)
     node = Queue_Insert(head);
 
     PreencheLinha(node);
+
+    for (i = NROWS; i >= 0; i--) {
+        margem[i+1] = margem[i];
+    }
+
+    margem[0] = *node;
     
     randomize(clock());
 }
@@ -123,16 +130,6 @@ static void PreencheLinha (Node* node)
 
     node->margem_esq = me;
     node->margem_dir = md;
-
-    static int index_texture = 0;
-
-    node->index_texture = index_texture;
-
-    index_texture += (int)(BLOCO_Y);
-
-    if (index_texture > DISPLAY_HIGHT)
-        index_texture = 0;
-
     
     static int folga = 0;
 
@@ -142,29 +139,25 @@ static void PreencheLinha (Node* node)
         folga = 0;
         ilha(node);
     }
-    
-    if (node->margem_esq > INTERVALO && (NCOLS - node->margem_dir) > INTERVALO ) {
-        if (score % 10 == 0) {
-            fim_jogo = true;
-        }
-    }
 
 }
 
 // haverá ilha ?
 static int sorteia_ilha ()
 {
-    randomize(SEMENTE + time(NULL));
+    randomize(clock() + time(NULL));
+    randomize(random_integer(0, 1000000));
 
-    return (random_real(0, 1) <= PROBABILITY_ILHA);
+    return (random_real(0, 100) <= PROBABILITY_ILHA);
 }
 
 
 static void ilha (Node* node)
 {
-    randomize(SEMENTE + time(NULL));
+    randomize(clock() + time(NULL));
+    randomize(random_integer(0, 1000000));
     
-    node->inicio_ilha = random_integer(node->margem_esq + 15, node->margem_dir - 15);
+    node->inicio_ilha = random_integer(node->margem_esq + 5, node->margem_dir - 15);
 }
 
 
@@ -205,6 +198,11 @@ Node* Queue_Insert(Node *head)
     head->prox = node;
 
     node->inicio_ilha = -1;
+
+    randomize(clock() * time(NULL));
+    randomize(random_integer(0, 1000000));
+
+    node->coef_relevo = random_integer(2, 10); 
 
     return node;
 }

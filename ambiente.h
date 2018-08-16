@@ -12,9 +12,9 @@
 
 /* Macros de configuração do jogo   */
 
-#define DISPLAY_HIGHT 550
+#define DISPLAY_HIGHT 560
 #define DISPLAY_WEIGHT 560
-#define NROWS 20
+#define NROWS 18
 #define NCOLS 80
 #define MARGEM_ESQ 8
 #define MARGEM_DIR 72
@@ -24,7 +24,7 @@
 #define LIM_ESQ (MARGEM_ESQ + INTERVALO)
 #define LIM_DIR (MARGEM_DIR - INTERVALO)
 #define SIZE_ILHA 10
-#define PROBABILITY_ILHA 1.0
+#define PROBABILITY_ILHA 100
 #define SEMENTE 5
 #define FOLGA_ILHAS 30
 #define FOLGA_OBJ 40
@@ -41,14 +41,20 @@ typedef struct node
 	int inicio_ilha;
 	struct node* prox;
 	struct node* ant;
-	int index_texture;
+	int coef_relevo;
 } Node;
 
+typedef struct
+{
+    int x;
+    int y;
+} Pixel;
+
+
 Node* head;
-bool fim_jogo;
+Node margem[NROWS+2];
+
 long int score;
-int iymax_chegada;
-int iy_chegada;
 
 
 Node* geraRio();
