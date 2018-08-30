@@ -9,10 +9,10 @@ boat: $(OBJ)
 utils.o: utils.c utils.h
 	gcc -c -g $^
 
-render.o: render.c render.h 
+render.o: render.c render.h ambiente.h
 	gcc -c -g $^
 
-ambiente.o: ambiente.c ambiente.h utils.h -lm
+ambiente.o: ambiente.c ambiente.h utils.h render.h -lm
 	gcc -c -g $^
 
 main.o: main.c utils.h ambiente.h render.h -lm

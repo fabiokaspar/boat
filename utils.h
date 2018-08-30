@@ -16,6 +16,8 @@ ALLEGRO_BITMAP* ilhabmp;
 int h;
 int w;
 
+int w_ilha, h_ilha;
+
 int h_chegada;
 int w_chegada;
 

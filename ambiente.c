@@ -87,7 +87,7 @@ Node* geraRio()
 
         PreencheLinha(node);
 
-        margem[i] = *node;
+        river_map[i] = *node;
     }
 
     return head;
@@ -106,10 +106,10 @@ void atualizaRio(Node *head)
     PreencheLinha(node);
 
     for (i = NROWS; i >= 0; i--) {
-        margem[i+1] = margem[i];
+        river_map[i+1] = river_map[i];
     }
 
-    margem[0] = *node;
+    river_map[0] = *node;
     
     randomize(clock());
 }
@@ -182,6 +182,7 @@ Node* Queue_Init()
 Node* Queue_Insert(Node *head)
 {
     Node* node = (Node*) MallocSafe(sizeof(Node));
+    static int i = 0;
 
     node->prox = head->prox;
 
@@ -202,7 +203,16 @@ Node* Queue_Insert(Node *head)
     randomize(clock() * time(NULL));
     randomize(random_integer(0, 1000000));
 
-    node->coef_relevo = random_integer(2, 10); 
+    node->coef_relevo = random_integer(2, 5); 
+    /*
+    if (i == 0)
+        node->coef_relevo = random_integer(2, 6); 
+    else 
+        node->coef_relevo = -1; 
+
+    i++;
+    i %= 2;
+    */
 
     return node;
 }

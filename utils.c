@@ -16,6 +16,8 @@ void load_bitmaps() {
     */
 
     ilhabmp = al_load_bitmap("images/ilha.png");
+    h_ilha = al_get_bitmap_height(ilhabmp);
+    w_ilha = al_get_bitmap_width(ilhabmp);
 }
 
 void* MallocSafe(size_t bytes)

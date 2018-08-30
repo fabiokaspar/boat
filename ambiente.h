@@ -14,7 +14,7 @@
 
 #define DISPLAY_HIGHT 560
 #define DISPLAY_WEIGHT 560
-#define NROWS 18
+#define NROWS 20
 #define NCOLS 80
 #define MARGEM_ESQ 8
 #define MARGEM_DIR 72
@@ -26,12 +26,11 @@
 #define SIZE_ILHA 10
 #define PROBABILITY_ILHA 100
 #define SEMENTE 5
-#define FOLGA_ILHAS 30
+#define FOLGA_ILHAS 10
 #define FOLGA_OBJ 40
 #define FPS 200
 #define BLOCO_X ((float)(1.0 * DISPLAY_WEIGHT)/NCOLS)
 #define BLOCO_Y ((float)(1.0 * DISPLAY_HIGHT)/NROWS)
-
 
 
 typedef struct node
@@ -52,8 +51,8 @@ typedef struct
 
 
 Node* head;
-Node margem[NROWS+2];
-
+Node river_map[NROWS+2];
+bool fim;
 long int score;
 
 
