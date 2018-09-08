@@ -12,9 +12,9 @@
 
 /* Macros de configuração do jogo   */
 
-#define DISPLAY_HIGHT 560
+#define DISPLAY_HIGHT 500
 #define DISPLAY_WEIGHT 560
-#define NROWS 20
+#define NROWS 15
 #define NCOLS 80
 #define MARGEM_ESQ 8
 #define MARGEM_DIR 72

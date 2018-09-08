@@ -31,7 +31,7 @@ static int ME ()
         me = xe + random_integer(1, 2);
     
     else
-        me = xe - random_integer(1, 2);
+        me = xe - random_integer(0, 2);
 
     if (me < MARGEM_ESQ)
         me = MARGEM_ESQ + 1.0 * INTERVALO/10;
@@ -60,7 +60,7 @@ static int MD ()
         md = xd + random_integer(1, 2);
     
     else
-        md = xd - random_integer(1, 2); 
+        md = xd - random_integer(0, 2); 
 
     if (md > MARGEM_DIR)
         md = MARGEM_DIR - 1.0 * INTERVALO/10;

@@ -4,7 +4,7 @@
 #define COR_AGUA (al_map_rgb(0, 127, 255))
 #define COR_MARGEM (al_map_rgb(255, 230, 128))
 #define LARGURA_LINHA 1.0
-#define COR_LINHA (al_map_rgb(0, 0, 0))
+#define COR_LINHA (al_map_rgb(204, 153, 0))
 #define COR_TEXTURA (al_map_rgb(255, 217, 102))
 #define X_INICIAL_BARCO 200
 #define Y_INICIAL_BARCO ((DISPLAY_HIGHT * 4)/5)

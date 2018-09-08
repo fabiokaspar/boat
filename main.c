@@ -9,6 +9,9 @@
 #include <string.h>
 #include <math.h>
 
+#define COR_TELA (al_map_rgb(51, 153, 255))
+#define COR_TEXT (al_map_rgb(255,255,255))
+#define COR_TEXT_MOUSE (al_map_rgb(0,0,0))
 
 typedef enum op
 {
@@ -20,9 +23,12 @@ enum MYKEYS {
 };
 
 
-ALLEGRO_FONT* fnt = NULL;
+ALLEGRO_FONT* fnt_pause = NULL;
 ALLEGRO_FONT* fnt_score = NULL;
-ALLEGRO_EVENT_QUEUE* fila = NULL;
+ALLEGRO_FONT* fnt = NULL;
+ALLEGRO_FONT* fnt_river = NULL;
+ALLEGRO_FONT* fnt_texto = NULL;
+
 
 //static ALLEGRO_THREAD* threads[NTHREADS];
 static ALLEGRO_THREAD* thr_eventos = NULL;
@@ -63,31 +69,31 @@ void load_variables_global();
 int teste_oito_vizinhos (Pixel centro);
 Pixel rotacao (Pixel p, float angle);
 int ehMargem(Pixel p);
-
+void tela_inicial();
+void tela_instrucoes();
 
 void* thread_eventos(ALLEGRO_THREAD* thread, void* arg);
-void* thread_colisao(ALLEGRO_THREAD* thread, void* arg);
-
 
 
 int main()
 {
     inicializaAllegro();
-
     load_variables_global();
     load_bitmaps();
+    
     inicializaJogo();
     
     al_set_target_backbuffer(screen);
+    tela_inicial();
 
     mutex = al_create_mutex();
 
     thr_eventos = al_create_thread(thread_eventos, NULL);
-    //thr_colisao = al_create_thread(thread_colisao, NULL);
+
     thr_render = al_create_thread(thread_render_cenarios, NULL);
 
     al_start_thread(thr_eventos);
-    //al_start_thread(thr_colisao);
+
     al_start_thread(thr_render);
 
     printf("Rodando as threads ......\n");
@@ -104,50 +110,253 @@ int main()
     play();
     
     al_join_thread(thr_eventos, NULL);
-    //al_join_thread(thr_colisao, NULL);
+
     al_join_thread(thr_render, NULL);
     al_destroy_thread(thr_eventos);
-    //al_destroy_thread(thr_colisao);
+
     al_destroy_thread(thr_render);
 
     al_destroy_mutex(mutex);
+
+    al_destroy_display(screen);
     
     return 0;
 }
 
-void* thread_colisao(ALLEGRO_THREAD* thread, void* arg) {
-    al_set_target_backbuffer(NULL);
+void inicializaJogo () {
+    screen = al_create_display(DISPLAY_WEIGHT, DISPLAY_HIGHT);
+    al_set_window_position(screen, 400, 50);
+    //al_draw_bitmap(al_load_bitmap("images/boattrace.png"), 0, 0, 0);
+
+    al_set_display_icon(screen, icon);
+    al_set_window_title(screen, "River");
+    //al_flip_display();
+
+    //al_rest(0.3);
     
-    struct timeval tm_colisao;
-    // inicio da contagem da primeira colisão
-    gettimeofday(&tm_colisao, NULL);
+    //al_resize_display(screen, DISPLAY_WEIGHT, DISPLAY_HIGHT);
 
-    while (!fim) 
+    if(!screen)
     {
-        if (detectaColisao() && relogio(tm_colisao) > 0.2) 
-        {
-            pisca = 5;
-            
-            nlifes--;
-
-            if (nlifes < 0)
-                nlifes = 0;
-            
-            // inicio da contagem da proxima colisão
-            gettimeofday(&tm_colisao, NULL);
-
-            //al_rest(4);
-            //fim = true;
-        }
+        fprintf(stderr, "Falha ao criar a janela\n");
+        return ;
     }
 
-    return NULL;
+    // Atribui o cursor padrão do sistema para ser usado
+    if (!al_set_system_mouse_cursor(screen, ALLEGRO_SYSTEM_MOUSE_CURSOR_DEFAULT))
+    {
+        fprintf(stderr, "Falha ao atribuir ponteiro do mouse.\n");
+        al_destroy_display(screen);
+        exit(0);
+    }
+
+    //al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE));
+    
+    fnt_pause = al_load_font("images/gunplay.ttf", 40, 0);
+    //fnt_pause = al_load_font("images/atari1.ttf", 40, 0);
+    if (!fnt_pause)
+    {
+        fprintf(stderr, "Falha ao carregar fonte.\n");
+        exit(0);
+    }
+
+    fnt_score = al_load_font("images/digiface.ttf", 20, 0);
+    
+    fnt = al_load_font("images/argb.ttf", 20, 0);
+    
+    fnt_river = al_load_font("images/adventure.ttf", 30, 0);
+
+    fnt_texto = al_load_font("images/mich.ttf", 15, 0);
+}
+
+void tela_instrucoes() {
+    ALLEGRO_EVENT event;
+    ALLEGRO_EVENT_QUEUE* fila = NULL;
+
+    fila = al_create_event_queue();
+    al_register_event_source(fila, al_get_display_event_source(screen));
+    // Dizemos que vamos tratar os eventos vindos do mouse
+    al_register_event_source(fila, al_get_mouse_event_source());
+      
+    const char* msg1 = "Controle a canoa usando as teclas de direção para chegar ao destino.";
+    const char* msg2 = "Cuidado com os obstáculos.";
+    const char* msg3 = "Tecla para cima acelera a canoa.";
+    const char* msg4 = "Tecla Enter pausa o jogo.";
+
+    al_clear_to_color(COR_TELA);    
+    al_draw_text(fnt_texto, COR_TEXT, DISPLAY_WEIGHT/40, DISPLAY_HIGHT/10, ALLEGRO_ALIGN_LEFT, msg1);    
+    al_draw_text(fnt_texto, COR_TEXT, DISPLAY_WEIGHT/40, DISPLAY_HIGHT/10 + 25, ALLEGRO_ALIGN_LEFT, msg2);    
+    al_draw_text(fnt_texto, COR_TEXT, DISPLAY_WEIGHT/40, DISPLAY_HIGHT/10 + 50, ALLEGRO_ALIGN_LEFT, msg3);    
+    al_draw_text(fnt_texto, COR_TEXT, DISPLAY_WEIGHT/40, DISPLAY_HIGHT/10 + 75, ALLEGRO_ALIGN_LEFT, msg4);
+    
+    float x, y;
+    float coord_botao[4] = {DISPLAY_WEIGHT/9.0, 7 * DISPLAY_HIGHT/8.0, DISPLAY_WEIGHT/9.0 + 140, 7 * DISPLAY_HIGHT/8.0 + 30};
+    float coord[4] = {coord_botao[0]-30, coord_botao[1]-60, coord_botao[2]+30, coord_botao[3]+20};
+
+    while(1)
+    {
+        al_draw_filled_rectangle(coord_botao[0], coord_botao[1], coord_botao[2], coord_botao[3], COR_TELA);
+        al_draw_text(fnt, COR_TEXT, coord_botao[0], coord_botao[1], ALLEGRO_ALIGN_LEFT, "GO BACK");
+
+        if (!al_is_event_queue_empty(fila)) 
+        {
+            al_get_next_event(fila, &event);
+
+            x = event.mouse.x;
+            y = event.mouse.y;
+
+            if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
+                exit(0);
+    
+            //al_draw_text(fnt, COR_TEXT, coord_botao[0], coord_botao[1], ALLEGRO_ALIGN_LEFT, "GO BACK");
+
+            if (x >= coord_botao[0] &&
+                y >= coord_botao[1] &&
+                x <= coord_botao[2] &&
+                y <= coord_botao[3]) 
+            {
+
+                al_draw_filled_rectangle(coord_botao[0], coord_botao[1], coord_botao[2], coord_botao[3], COR_TELA);
+                al_draw_text(fnt, COR_TEXT_MOUSE, coord_botao[0], coord_botao[1], ALLEGRO_ALIGN_LEFT, "GO BACK");
+
+                if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_UP) {
+                    //al_flush_event_queue(fila);
+                    break;        
+                }
+            }            
+        }
+        
+        al_flip_display();
+
+        al_wait_for_event(fila, NULL);
+    }
+    
+    al_destroy_event_queue(fila);
+}
+
+void tela_inicial() {
+    ALLEGRO_EVENT event;
+    ALLEGRO_EVENT_QUEUE* fila = NULL;
+    fila = al_create_event_queue();
+    al_register_event_source(fila, al_get_display_event_source(screen));
+    // Dizemos que vamos tratar os eventos vindos do mouse
+    al_register_event_source(fila, al_get_mouse_event_source());
+
+    float coord[4] = {DISPLAY_WEIGHT/4.0, DISPLAY_HIGHT/2, 3.0 * DISPLAY_WEIGHT/4.0,  7.0 * DISPLAY_HIGHT/8.0};
+    
+    float coord_play[4] = {(coord[0]+coord[2])/2 - 40, coord[1] + 20, (coord[0]+coord[2])/2 + 40, coord[1] + 40};
+    float coord_instr[4] = {(coord[0]+coord[2])/2 - 130, coord[1] + 80, (coord[0]+coord[2])/2 + 130, coord[1] + 100};
+    float coord_quit[4] = {(coord[0]+coord[2])/2 - 40, coord[1] + 140, (coord[0]+coord[2])/2 + 40, coord[1] + 160};
+
+    float x, y;
+     
+    int botoes[3] = {0,0,0};
+    bool espera = true;
+    
+    while (1) 
+    {
+        //if (botoes[0] || botoes[1] || botoes[2]) {}
+        espera = true;
+        al_clear_to_color(COR_TELA);
+        al_draw_text(fnt_river, COR_TEXT, DISPLAY_WEIGHT/2, DISPLAY_HIGHT/4, ALLEGRO_ALIGN_CENTRE, "R I V E R");
+
+        if (botoes[0])
+            al_draw_text(fnt, COR_TEXT_MOUSE, (coord[0]+coord[2])/2, coord[1] + 20, ALLEGRO_ALIGN_CENTRE, "PLAY");
+        else
+            al_draw_text(fnt, COR_TEXT, (coord[0]+coord[2])/2, coord[1] + 20, ALLEGRO_ALIGN_CENTRE, "PLAY");
+
+        if (botoes[1])
+            al_draw_text(fnt, COR_TEXT_MOUSE, (coord[0]+coord[2])/2, coord[1] + 80, ALLEGRO_ALIGN_CENTRE, "INSTRUCTIONS");
+        else 
+            al_draw_text(fnt, COR_TEXT, (coord[0]+coord[2])/2, coord[1] + 80, ALLEGRO_ALIGN_CENTRE, "INSTRUCTIONS");
+
+        if (botoes[2])
+            al_draw_text(fnt, COR_TEXT_MOUSE, (coord[0]+coord[2])/2, coord[1] + 140, ALLEGRO_ALIGN_CENTRE, "QUIT");
+        else
+            al_draw_text(fnt, COR_TEXT, (coord[0]+coord[2])/2, coord[1] + 140, ALLEGRO_ALIGN_CENTRE, "QUIT");
+
+        if (!al_is_event_queue_empty(fila)) 
+        {
+            al_get_next_event(fila, &event);
+
+            x = event.mouse.x;
+            y = event.mouse.y;
+            
+            if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
+                exit(0);
+            }
+ 
+            if (x >= coord_play[0] &&
+                y >= coord_play[1] &&
+                x <= coord_play[2] &&
+                y <= coord_play[3]) 
+            {
+                botoes[0] = 1;
+                botoes[1] = botoes[2] = 0;
+                //al_draw_text(fnt, COR_TEXT_MOUSE, (coord[0]+coord[2])/2, coord[1] + 20, ALLEGRO_ALIGN_CENTRE, "PLAY");
+                
+                if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_UP) {
+                    break;
+                }
+            }
+
+            else if (x >= coord_instr[0] &&
+                     y >= coord_instr[1] &&
+                     x <= coord_instr[2] &&
+                     y <= coord_instr[3]) 
+            {
+                //al_draw_text(fnt, COR_TEXT_MOUSE, (coord[0]+coord[2])/2, coord[1] + 80, ALLEGRO_ALIGN_CENTRE, "INSTRUCTIONS");
+                botoes[1] = 1;
+                botoes[0] = botoes[2] = 0;
+
+                if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_UP) {
+                    tela_instrucoes();
+                    al_flush_event_queue(fila);
+                    espera = false;                    
+                }
+            }
+
+            else if (x >= coord_quit[0] &&
+                     y >= coord_quit[1] &&
+                     x <= coord_quit[2] &&
+                     y <= coord_quit[3]) 
+            {
+                //al_draw_text(fnt, COR_TEXT_MOUSE, (coord[0]+coord[2])/2, coord[1] + 140, ALLEGRO_ALIGN_CENTRE, "QUIT");
+                botoes[2] = 1;
+                botoes[0] = botoes[1] = 0;
+
+                if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_UP) {
+                    exit(0);                    
+                }
+            }
+            else 
+                botoes[0] = botoes[1] = botoes[2] = 0; 
+        }
+
+        al_flip_display();    
+        
+        if (espera)
+            al_wait_for_event(fila, NULL);
+    }
+
+    al_destroy_event_queue(fila);
 }
 
 
 void* thread_eventos(ALLEGRO_THREAD* thread, void* arg) {
     al_set_target_backbuffer(NULL);
+    ALLEGRO_EVENT_QUEUE* fila = NULL;
     ALLEGRO_EVENT event;
+    fila = al_create_event_queue();
+
+    if (!fila)
+    {
+        fprintf(stderr, "Não criou a fila de eventos!\n");
+        exit(0);
+    }
+        
+    al_register_event_source(fila, al_get_display_event_source(screen));
+    al_register_event_source(fila, al_get_keyboard_event_source());
 
     while (1) 
     {
@@ -204,6 +413,7 @@ void* thread_eventos(ALLEGRO_THREAD* thread, void* arg) {
         }
     }
 
+    al_destroy_event_queue(fila);
     printf("saiu3\n");
 
     return NULL;
@@ -267,9 +477,8 @@ void play()
             al_lock_mutex(mutex);
             remove_bmp();
             al_unlock_mutex(mutex);
-            
         
-            al_rest(0.0);
+            //al_rest(0.01);
         }
             
         else {
@@ -507,41 +716,6 @@ void trata_evento_tecla_direcao() {
 
 }
 
-void inicializaJogo () {
-    screen = al_create_display(DISPLAY_WEIGHT, DISPLAY_HIGHT);
-    al_set_window_position(screen, 300, 100);
-    al_draw_bitmap(al_load_bitmap("images/boattrace.png"), 0, 0, 0);
-
-    al_set_display_icon(screen, icon);
-    al_set_window_title(screen, "River");
-    al_flip_display();
-
-    al_rest(0.3);
-    
-    al_resize_display(screen, DISPLAY_WEIGHT, DISPLAY_HIGHT);
-    al_set_window_position(screen, 400, 50);
-
-    if(!screen)
-    {
-        fprintf(stderr, "Falha ao criar a janela\n");
-        return ;
-    }
-
-    //al_clear_to_color(al_map_rgb(cor.RED, cor.GREEN, cor.BLUE));
-    
-    fila = al_create_event_queue();
-        
-    al_register_event_source(fila, al_get_display_event_source(screen));
-    al_register_event_source(fila, al_get_keyboard_event_source());
-
-
-    if (!fila)
-    {
-        fprintf(stderr, "Não criou a fila de eventos!\n");
-        exit(0);
-    }
-}
-
 void ajusta_barco() {
     if (angle > 0) 
     {
@@ -586,6 +760,13 @@ void inicializaAllegro()
         return ;
     }
 
+    // Torna apto o uso de mouse na aplicação
+    if (!al_install_mouse())
+    {
+        fprintf(stderr, "Falha ao inicializar o mouse.\n");
+        return ;
+    }
+
     al_init_font_addon();
 
     if (!al_init_ttf_addon())
@@ -594,29 +775,20 @@ void inicializaAllegro()
         return ;
     }
     
-    fnt = al_load_font("images/gunplay.ttf", 40, 0);
-    //fnt = al_load_font("images/atari1.ttf", 40, 0);
-    if (!fnt)
-    {
-        fprintf(stderr, "Falha ao carregar fonte.\n");
-        exit(0);
-    }
-
-    fnt_score = al_load_font("images/digiface.ttf", 20, 0);
     al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
 }
 
 void finalizaJogo() {
-    DesalocaAmbiente(head);
-    al_destroy_event_queue(fila);
+    Queue_Free_All (head);
+    //al_destroy_event_queue(fila);
     al_destroy_bitmap(barco);
-    al_destroy_display(screen);
-
+    al_destroy_bitmap(ilhabmp);
+    remove_all_bmp();
 }
 
 void print_pause_frame() {
     //al_draw_filled_rectangle(DISPLAY_WEIGHT/2.0, DISPLAY_HIGHT/2.5, DISPLAY_WEIGHT/2.0 + 100, DISPLAY_HIGHT/2.5 + 100, al_map_rgb(255,255,255));
-    al_draw_text(fnt, al_map_rgb(0, 0, 0), DISPLAY_WEIGHT/2, DISPLAY_HIGHT/2.5, ALLEGRO_ALIGN_CENTRE, "P A U S E");
+    al_draw_text(fnt_pause, al_map_rgb(0, 0, 0), DISPLAY_WEIGHT/2, DISPLAY_HIGHT/2.5, ALLEGRO_ALIGN_CENTRE, "P A U S E");
     al_flip_display();
 }
 
