@@ -1,23 +1,47 @@
 
 #include <stdio.h>
 #include "utils.h"
+#include <math.h>
 
-void load_bitmaps() {
-    //al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
-    icon = al_load_bitmap("images/icon.png");
-    chegada = al_load_bitmap("images/chegada.png");
-    barco = al_load_bitmap("images/barco.png");
 
-    w = al_get_bitmap_width(barco);
-    h = al_get_bitmap_height(barco);
+// em ralação a origem do plano xoy
+// matriz de rotação:
+// M = [cos(beta) -sen(-beta) ]
+//     [sen(-beta)  cos(beta) ]
+Pixel rotacao (Pixel p, float angle) {
+    Pixel p2;
+    float a, b;
 
-    /*h_chegada = al_get_bitmap_height(chegada);
-    w_chegada = al_get_bitmap_width(chegada);
-    */
+    a = cos(angle);
+    b = sin(angle);
 
-    ilhabmp = al_load_bitmap("images/ilha.png");
-    h_ilha = al_get_bitmap_height(ilhabmp);
-    w_ilha = al_get_bitmap_width(ilhabmp);
+    p2.x = (int) (a * p.x - b * p.y);
+    p2.y = (int) (b * p.x + a * p.y);
+
+    return p2;
+}
+
+
+bool esta_contido_em(float retangulo[4], float x, float y) {
+    
+    //printf("%f %f %f %f\n", retangulo[0], retangulo[1], retangulo[2], retangulo[3]);
+    //printf("%f %f\n", x, y);
+    if (x >= retangulo[0] &&
+        y >= retangulo[1] &&
+        x <= retangulo[2] &&
+        y <= retangulo[3]) {
+    
+        return true;
+    }
+
+    return false;
+}
+
+void limpa_buffer_teclado (int nit) {
+    int i;
+    for (i = 0; i < nit; i++) {
+        __fpurge(stdin);
+    }
 }
 
 void* MallocSafe(size_t bytes)

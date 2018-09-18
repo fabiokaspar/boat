@@ -1,6 +1,8 @@
 #ifndef RENDER_H_INCLUDED
 #define RENDER_H_INCLUDED
 
+#include "ambiente.h"
+
 #define COR_AGUA (al_map_rgb(0, 127, 255))
 #define COR_MARGEM (al_map_rgb(255, 230, 128))
 #define LARGURA_LINHA 1.0
@@ -10,45 +12,39 @@
 #define Y_INICIAL_BARCO ((DISPLAY_HIGHT * 4)/5)
 
 
-#include "ambiente.h"
-
-
-typedef struct rgb
+typedef struct
 {
-    unsigned char RED;
-    unsigned char GREEN;
-    unsigned char BLUE;
-} RGB;
-
-typedef struct bmp {
-	ALLEGRO_BITMAP* bitmap;
-	Node river_map[NROWS+2];
-	float x;
-	float angle;
-	struct bmp* prox;
-} BITMAP;
+    int x;
+    int y;
+} Pixel;
 
 
-BITMAP* head_bmp;
-BITMAP* tail_bmp;
-BITMAP* ptr_frame;
-ALLEGRO_MUTEX* mutex;
-int nframes;
+ALLEGRO_BITMAP* chegada;
+ALLEGRO_BITMAP* barco;
+ALLEGRO_BITMAP* icon;
+ALLEGRO_BITMAP* ilhabmp;
+ALLEGRO_BITMAP* life;
 
+int h;
+int w;
 
-RGB cor;
+int w_ilha, h_ilha;
+
+/*
+int h_chegada;
+int w_chegada;
+*/
+
 ALLEGRO_DISPLAY* screen;
+ALLEGRO_FONT* fnt_pause;
+ALLEGRO_FONT* fnt_score;
+ALLEGRO_FONT* fnt;
+ALLEGRO_FONT* fnt_river;
+ALLEGRO_FONT* fnt_texto;
 
-
-void* thread_render_cenarios(ALLEGRO_THREAD* thread, void* arg);
-BITMAP* consome_buffer();
-BITMAP* get_next_bmp();
-
-void init_bmp();
-void insert_bmp(ALLEGRO_BITMAP* bitmap, Node river_map[NROWS+2], float x, float angle);
-void remove_bmp();
-short is_empty_bmp();
-void remove_all_bmp();
-
+void carrega_imagens();
+void render_play_frame();
+void render_pause_frame();
+void inicializa_fontes();
 
 #endif // RENDER_H_INCLUDED

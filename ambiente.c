@@ -2,7 +2,7 @@
 #include "utils.h"
 #include <stdio.h>
 #include <time.h>
-#include <math.h>
+//#include <math.h>
 
 
 static int sorteia_ilha();
@@ -12,27 +12,23 @@ static int MD();
 
 static void PreencheLinha(Node* node);
 static void ilha(Node* node);
-void DesalocaAmbiente(Node* head);
 
 
 static int ME ()
 {
     int me;
     static int xe = MARGEM_ESQ + 1.0 * INTERVALO/10;
-    
+    static short increase = 0;
+    short aux;
+
     randomize(clock() + time(NULL));
     
     randomize(random_integer(0, 1000000));
 
-    if (random_integer(0, 100) < 50)
-        me = xe + random_integer(-2, 2);
+    aux = random_integer(-1, 1);
 
-    if (random_integer(50, 100) < 75)
-        me = xe + random_integer(1, 2);
-    
-    else
-        me = xe - random_integer(0, 2);
-
+    me = xe + aux;
+            
     if (me < MARGEM_ESQ)
         me = MARGEM_ESQ + 1.0 * INTERVALO/10;
 
@@ -48,19 +44,15 @@ static int MD ()
 {
     int md;
     static int xd = MARGEM_DIR - 1.0 * INTERVALO/10;
+    short aux;
 
     randomize(clock() + time(NULL));
     
     randomize(random_integer(0, 1000000));
 
-    if (random_integer(0, 100) < 50)
-        md = xd + random_integer(-2, 2);
-
-    else if (random_integer(50, 100) < 75)
-        md = xd + random_integer(1, 2);
+    aux = random_integer(-1, 1);
     
-    else
-        md = xd - random_integer(0, 2); 
+    md = xd + aux;
 
     if (md > MARGEM_DIR)
         md = MARGEM_DIR - 1.0 * INTERVALO/10;
@@ -114,8 +106,6 @@ void atualizaRio(Node *head)
     randomize(clock());
 }
 
-
-
 static void PreencheLinha (Node* node)
 {
     int me, md;
@@ -161,13 +151,6 @@ static void ilha (Node* node)
 }
 
 
-void DesalocaAmbiente (Node* head)
-{
-    Queue_Free_All (head);
-}
-
-
-
 /*------------------------ fila de nodes -------------------------*/
 
 Node* Queue_Init()
@@ -188,12 +171,6 @@ Node* Queue_Insert(Node *head)
 
     node->ant = head;
     
-    /*
-    if (head->prox == head) {
-        head->ant = node;
-    }
-    */
-
     head->prox->ant = node;
     
     head->prox = node;
@@ -204,15 +181,7 @@ Node* Queue_Insert(Node *head)
     randomize(random_integer(0, 1000000));
 
     node->coef_relevo = random_integer(2, 5); 
-    /*
-    if (i == 0)
-        node->coef_relevo = random_integer(2, 6); 
-    else 
-        node->coef_relevo = -1; 
-
-    i++;
-    i %= 2;
-    */
+    
 
     return node;
 }

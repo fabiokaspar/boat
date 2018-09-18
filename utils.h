@@ -5,23 +5,11 @@
 #include <time.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
+#include "render.h"
 
-ALLEGRO_BITMAP* mesqc;
-ALLEGRO_BITMAP* mesqd;
-ALLEGRO_BITMAP* chegada;
-ALLEGRO_BITMAP* barco;
-ALLEGRO_BITMAP* icon;
-ALLEGRO_BITMAP* ilhabmp;
 
-int h;
-int w;
+bool esta_contido_em(float retangulo[], float x, float y);
 
-int w_ilha, h_ilha;
-
-int h_chegada;
-int w_chegada;
-
-void load_bitmaps();
 
 void* MallocSafe(size_t bytes);
 
@@ -36,5 +24,8 @@ float random_real(float low, float high);
 /* Inicializa uma semente */
 void randomize(int seed);
 
+void limpa_buffer_teclado (int nit);
+
+Pixel rotacao (Pixel p, float angle);
 
 #endif // UTILS_H_INCLUDED
