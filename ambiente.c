@@ -5,6 +5,11 @@
 //#include <math.h>
 
 
+
+#define MAX_INCREASE 3
+#define MAX_DECREASE (-3)
+
+
 static int sorteia_ilha();
 
 static int ME();
@@ -18,14 +23,22 @@ static int ME ()
 {
     int me;
     static int xe = MARGEM_ESQ + 1.0 * INTERVALO/10;
-    static short increase = 0;
     short aux;
+    static short i = 0;
 
     randomize(clock() + time(NULL));
     
     randomize(random_integer(0, 1000000));
 
+    //if (random_real(0, 10) < 5)
     aux = random_integer(-1, 1);
+   // else
+    //    aux = random_integer(-2, 2);
+
+    i += aux;
+    if (i > MAX_INCREASE || i < -MAX_INCREASE) {
+        aux *= (-1); 
+    }
 
     me = xe + aux;
             
@@ -45,6 +58,7 @@ static int MD ()
     int md;
     static int xd = MARGEM_DIR - 1.0 * INTERVALO/10;
     short aux;
+    static short i = 0;
 
     randomize(clock() + time(NULL));
     
@@ -52,13 +66,19 @@ static int MD ()
 
     aux = random_integer(-1, 1);
     
+    i += aux;
+    if (i > MAX_INCREASE || i < MAX_DECREASE) {
+        aux *= (-1); 
+        i = 0;
+    }
+      
     md = xd + aux;
 
     if (md > MARGEM_DIR)
         md = MARGEM_DIR - 1.0 * INTERVALO/10;
 
     if (md < LIM_DIR)
-        md = LIM_DIR + 1.0 * INTERVALO/10;
+        md = LIM_DIR + 1.0 * INTERVALO/10;    
 
     xd = md;
 
@@ -112,11 +132,13 @@ static void PreencheLinha (Node* node)
     me = ME();
     md = MD();
 
+    /*
     if (md - me > LARGURA_MAX)
         md = LARGURA_MAX + me;
     
     if (md - me < LARGURA_MIN)
         md = LARGURA_MIN + me;
+    */
 
     node->margem_esq = me;
     node->margem_dir = md;
@@ -125,7 +147,7 @@ static void PreencheLinha (Node* node)
 
     folga++;
 
-    if (score < 1000000 && folga >= FOLGA_ILHAS && sorteia_ilha()) {
+    if (folga >= FOLGA_ILHAS && sorteia_ilha()) {
         folga = 0;
         ilha(node);
     }
@@ -166,6 +188,7 @@ Node* Queue_Insert(Node *head)
 {
     Node* node = (Node*) MallocSafe(sizeof(Node));
     static int i = 0;
+    short tem_textura = 4;
 
     node->prox = head->prox;
 
@@ -180,8 +203,14 @@ Node* Queue_Insert(Node *head)
     randomize(clock() * time(NULL));
     randomize(random_integer(0, 1000000));
 
-    node->coef_relevo = random_integer(2, 5); 
-    
+    node->coef_relevo = -1;
+
+    i++;
+
+    if (i == tem_textura) {
+        node->coef_relevo = random_integer(2, 5);
+        i = 0;
+    }
 
     return node;
 }

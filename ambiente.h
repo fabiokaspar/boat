@@ -16,13 +16,13 @@
 #define DISPLAY_HIGHT 500
 #define DISPLAY_WEIGHT 400
 #define NROWS 75
-#define FOLGA_ILHAS 20
+#define FOLGA_ILHAS 40
 #define NCOLS 80
-#define MARGEM_ESQ 4
-#define MARGEM_DIR 76
-#define INTERVALO 10
+#define MARGEM_ESQ 8
+#define MARGEM_DIR 72
+#define INTERVALO 15
 #define LARGURA_MAX 60
-#define LARGURA_MIN 10
+#define LARGURA_MIN 20
 #define LIM_ESQ (MARGEM_ESQ + INTERVALO)
 #define LIM_DIR (MARGEM_DIR - INTERVALO)
 #define SIZE_ILHA 10
@@ -46,8 +46,6 @@ typedef struct node
 
 Node* head;
 Node river_map[NROWS+2];
-bool fim;
-long int score;
 
 
 Node* geraRio();

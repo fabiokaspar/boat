@@ -26,6 +26,6 @@ void randomize(int seed);
 
 void limpa_buffer_teclado (int nit);
 
-Pixel rotacao (Pixel p, float angle);
+
 
 #endif // UTILS_H_INCLUDED

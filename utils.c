@@ -4,23 +4,6 @@
 #include <math.h>
 
 
-// em ralação a origem do plano xoy
-// matriz de rotação:
-// M = [cos(beta) -sen(-beta) ]
-//     [sen(-beta)  cos(beta) ]
-Pixel rotacao (Pixel p, float angle) {
-    Pixel p2;
-    float a, b;
-
-    a = cos(angle);
-    b = sin(angle);
-
-    p2.x = (int) (a * p.x - b * p.y);
-    p2.y = (int) (b * p.x + a * p.y);
-
-    return p2;
-}
-
 
 bool esta_contido_em(float retangulo[4], float x, float y) {
     
