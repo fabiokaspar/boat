@@ -23,14 +23,14 @@ static void carrega_imagens();
 static void desaloca_imagens();
 
 
-void render_placar(long int score, int vidas, int distancia) {
+void render_placar(long int score, int vidas, double distancia) {
     char score_str[30];
     char life_str[5];
     char distancia_str[10];
 
     sprintf(life_str, "%d", vidas);
     sprintf(score_str, "%ld pts", score);
-    sprintf(distancia_str, "%dm", distancia);
+    sprintf(distancia_str, "%.1fm", distancia);
     
     al_draw_filled_rectangle(0, DISPLAY_HIGHT-25, DISPLAY_WEIGHT, DISPLAY_HIGHT, PLACAR);
     al_draw_bitmap(life, DISPLAY_WEIGHT/2, DISPLAY_HIGHT-25, 0);

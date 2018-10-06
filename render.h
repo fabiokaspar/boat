@@ -43,6 +43,6 @@ void render_pause();
 void inicializa_fontes();
 void inicializa_janela();
 void desaloca_janela();
-void render_placar(long int score, int vidas, int distancia);
+void render_placar(long int score, int vidas, double distancia);
 
 #endif // RENDER_H_INCLUDED

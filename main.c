@@ -14,9 +14,8 @@
 #define Y_INICIAL_BARCO ((DISPLAY_HIGHT * 4)/5)
 #define BLOCK_TRANSLATION 1.0
 
-#define FRAMES_COLISION 10
-#define INTERVAL_COLISION 0.3
 #define INTERVAL_CLOCK 0.03
+#define INTERVAL_COLISION 0.12
 
 bool pressed_keys[3] = {false, false, false};
 
@@ -32,10 +31,11 @@ ALLEGRO_COND *cond = NULL;
 
 bool freia, stop, fim;
 long int score;
-float x, y, angle, velocidade, distance;
+float x, y, angle;
+double velocidade, distance;
 short lifes;
 Pixel borda[4];
-short colision;
+bool colision;
 
 
 void inicializa_configuracao_barco();
@@ -199,7 +199,7 @@ void play()
         trata_evento_tecla_direcao();
         atualizaRio(head);
     
-        //al_rest(0.01);
+        //al_rest(0.012);
     }
 
     printf("saiu1\n");
@@ -211,9 +211,9 @@ void render_barco() {
             w/2, h/2, x, Y_INICIAL_BARCO, angle, 0);         
     
         al_flip_display();
-        al_rest(INTERVAL_COLISION/FRAMES_COLISION);
+        al_rest(INTERVAL_COLISION);
     
-        colision--;
+        colision = false;
     }
     else {
         al_draw_rotated_bitmap(barco, w/2, h/2, x, Y_INICIAL_BARCO, angle, 0);
@@ -305,7 +305,7 @@ void inicializa_configuracao_barco() {
     fim = false;
     freia = false;
     stop = false;
-    colision = 0;
+    colision = false;
     x = X_INICIAL_BARCO;
     y = Y_INICIAL_BARCO;
     angle = 0;
@@ -527,7 +527,7 @@ void* thread_timer(ALLEGRO_THREAD* thread, void* arg) {
     al_set_target_backbuffer(NULL);
 
     short slot_colision = 0, slot_score = 0;
-    float acrescimo_distancia;    
+    double acrescimo_distancia;    
     
     ALLEGRO_EVENT event;
     ALLEGRO_EVENT_QUEUE* queue_timer = NULL;
@@ -569,17 +569,14 @@ void* thread_timer(ALLEGRO_THREAD* thread, void* arg) {
                 slot_score++;
                 slot_colision++;
 
-                acrescimo_distancia = (velocidade * INTERVAL_CLOCK);
-                distance += acrescimo_distancia;
 
-                if (slot_colision >= 0 && houveColisao())
+                if (slot_colision >= 10 && houveColisao())
                 {
                  
                     slot_colision = 0;
                     slot_score = 0;
-                    colision = FRAMES_COLISION;
+                    colision = true;
                     
-    
                     lifes--;
 
                     if (lifes < 0)
@@ -587,19 +584,26 @@ void* thread_timer(ALLEGRO_THREAD* thread, void* arg) {
 
                     desconta_score_por_colisao();
 
+                    
                     al_stop_timer(gerador_clock);
                     
-                    al_rest(INTERVAL_COLISION);
+                    //al_rest(INTERVAL_COLISION);
 
                     al_flush_event_queue(queue_timer);
                     
-                    al_start_timer(gerador_clock);                        
+                    al_start_timer(gerador_clock);
+                    
                 }
-            
-                if (slot_score >= 5) 
-                {
-                    slot_score = 0;
-                    score++;
+
+                else {
+                    acrescimo_distancia = (velocidade * INTERVAL_CLOCK);
+                    distance += acrescimo_distancia;
+                    
+                    if (slot_score >= 5) 
+                    {
+                        slot_score = 0;
+                        score++;
+                    }
                 }
             }
         }

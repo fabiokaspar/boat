@@ -16,7 +16,7 @@
 #define DISPLAY_HIGHT 500
 #define DISPLAY_WEIGHT 400
 #define NROWS 75
-#define FOLGA_ILHAS 40
+#define FOLGA_ILHAS 20
 #define NCOLS 80
 #define MARGEM_ESQ 8
 #define MARGEM_DIR 72
