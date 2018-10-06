@@ -1,5 +1,4 @@
 #include "ambiente.h"
-#include "utils.h"
 #include <stdio.h>
 #include <time.h>
 //#include <math.h>

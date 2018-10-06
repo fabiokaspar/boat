@@ -1,7 +1,23 @@
 #ifndef RENDER_H_INCLUDED
 #define RENDER_H_INCLUDED
 
+typedef struct
+{
+    int x;
+    int y;
+} Pixel;
+
+#include <allegro5/allegro.h>
+#include <allegro5/allegro_image.h>
+#include <allegro5/allegro_primitives.h>
+#include <allegro5/allegro_font.h>
+#include <allegro5/allegro_ttf.h>
+
+#include <stdbool.h>
 #include "ambiente.h"
+#include "utils.h"
+#include "barco.h"
+
 
 #define COR_AGUA (al_map_rgb(0, 127, 255))
 #define COR_MARGEM (al_map_rgb(255, 230, 128))
@@ -9,13 +25,6 @@
 #define COR_LINHA (al_map_rgb(204, 153, 0))
 #define COR_TEXTURA (al_map_rgb(255, 217, 102))
 
-
-
-typedef struct
-{
-    int x;
-    int y;
-} Pixel;
 
 int h, w, w_ilha, h_ilha;
 
@@ -44,5 +53,6 @@ void inicializa_fontes();
 void inicializa_janela();
 void desaloca_janela();
 void render_placar(long int score, int vidas, double distancia);
+void render_barco(bool colision);
 
 #endif // RENDER_H_INCLUDED

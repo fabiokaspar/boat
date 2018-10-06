@@ -1,6 +1,8 @@
 #ifndef AMBIENTE_H_INCLUDED
 #define AMBIENTE_H_INCLUDED 
 
+#include "utils.h"
+
 #include <stdbool.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>

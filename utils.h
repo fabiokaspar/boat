@@ -5,7 +5,6 @@
 #include <time.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
-#include "render.h"
 
 
 bool esta_contido_em(float retangulo[], float x, float y);

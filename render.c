@@ -1,6 +1,4 @@
 #include "render.h"
-#include "utils.h"
-#include "ambiente.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -22,6 +20,16 @@ static void render_ilha(int index);
 static void carrega_imagens();
 static void desaloca_imagens();
 
+
+void render_barco(bool colision) {
+    if (colision) {
+        al_draw_tinted_rotated_bitmap(barco, al_map_rgba_f(1, 1, 1, 0.5),
+            w/2, h/2, x, Y_INICIAL_BARCO, angle, 0);             
+    }
+    else {
+        al_draw_rotated_bitmap(barco, w/2, h/2, x, Y_INICIAL_BARCO, angle, 0);
+    }
+}
 
 void render_placar(long int score, int vidas, double distancia) {
     char score_str[30];

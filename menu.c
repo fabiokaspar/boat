@@ -1,6 +1,5 @@
 #include "menu.h"
-#include "utils.h"
-#include "render.h"
+
 
 #define COR_TELA (al_map_rgb(255, 255, 255))
 //#define COR_TELA (al_map_rgb(51, 153, 255))
