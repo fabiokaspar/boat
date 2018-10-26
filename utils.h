@@ -6,9 +6,10 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
 
+#define MIN(a, b) ( (a) <= (b) ? (a) : (b)  )
+#define MAX(a, b) ( (a) >= (b) ? (a) : (b)  )
 
 bool esta_contido_em(float retangulo[], float x, float y);
-
 
 void* MallocSafe(size_t bytes);
 

@@ -5,33 +5,16 @@
 #define BLOCK_TRANSLATION 1.0
 
 void inicializa_configuracao_barco() {
-    fim = false;
-    freia = false;
-    stop = false;
-    colision = false;
-    x = X_INICIAL_BARCO;
-    y = Y_INICIAL_BARCO;
+    x = X_INICIAL;
+    y = Y_INICIAL;
+    velocidade = VEL_MIN;
     angle = 0;
-    lifes = 10;
-    score = 0;
-    velocidade = 1.5;
-    distance = 0;
 
     // cantos do barco
     borda[0] = (Pixel) {0, 0 - h/2};
     borda[1] = (Pixel) {0, 0 + h/2};    
     borda[2] = (Pixel) {0 - w/2, 0};       
     borda[3] = (Pixel) {0 + w/2, 0};
-}
-
-void desconta_score_por_colisao() {
-    if (score > 0) 
-    {
-        if (score < 10)
-            score = 0;
-
-        else score -= 10;
-    }
 }
 
 int detectaColisao (Node map[NROWS+2]) {
@@ -43,7 +26,7 @@ int detectaColisao (Node map[NROWS+2]) {
         p.x += x;
         p.y += y;
 
-        if (teste_oito_vizinhos(p, map)) {
+        if (teste_quatro_vizinhos(p, map)) {
             return 1;
         }
     }
@@ -51,32 +34,20 @@ int detectaColisao (Node map[NROWS+2]) {
     return 0;
 }
 
-int teste_oito_vizinhos (Pixel centro, Node map[NROWS+2]) {    
+int teste_quatro_vizinhos (Pixel centro, Node map[NROWS+2]) {    
     Pixel v;
-
-    //v.x = centro.x - 1, v.y = centro.y - 1;
-    //if (ehMargem(v, map)) { return 1;}
 
     v.x = centro.x - 1, v.y = centro.y;
     if (ehMargem(v, map)) { return 1;}
     
-    //v.x = centro.x - 1, v.y = centro.y + 1;
-    //if (ehMargem(v, map)) { return 1;}
-
     v.x = centro.x, v.y = centro.y - 1;
     if (ehMargem(v, map)) { return 1;}
 
     v.x = centro.x, v.y = centro.y + 1;
     if (ehMargem(v, map)) { return 1;}
 
-    //v.x = centro.x + 1, v.y = centro.y - 1;
-    //if (ehMargem(v, map)) { return 1;}
-
     v.x = centro.x + 1, v.y = centro.y;
     if (ehMargem(v, map)) { return 1;}
-
-    //v.x = centro.x + 1, v.y = centro.y + 1;
-    //if (ehMargem(v, map)) { return 1;}
 
     v.x = centro.x, v.y = centro.y;
     if (ehMargem(v, map)) { return 1;}
@@ -102,11 +73,12 @@ int ehMargem(Pixel p, Node map[NROWS+2]) {
     if (p.x >= x) return 1;
 
     // testa se eh ilha
-    
-    if (node.inicio_ilha != -1) {
-        x = node.inicio_ilha * BLOCO_X;
+    Sequencia_Ilhas seq = node.seq;
 
-        if (p.x >= x-5 && p.x <= x + w_ilha+5 ) {            
+    if (seq.qtd > 0) {
+        x = seq.inicio * BLOCO_X;
+
+        if (p.x > x+5 && p.x < x + seq.largura_pxs-5) {            
             return 1;
         }
     }

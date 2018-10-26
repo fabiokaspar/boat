@@ -1,184 +1,254 @@
 #include "menu.h"
+#include <stdio.h>
+#include <stdbool.h>
 
 
-#define COR_TELA (al_map_rgb(255, 255, 255))
-//#define COR_TELA (al_map_rgb(51, 153, 255))
-#define COR_TEXT_BUTTONS (al_map_rgb(70, 200, 70))
-#define COR_TEXT_MOUSE (al_map_rgb(0, 0, 0))
-#define COR_TEXT_INSTRUCTIONS (al_map_rgb(0, 0, 0))
+static void tela_instrucoes();
+static short cursor_aponta_botaox_tela_inicial();
+static bool cursor_aponta_botao_tela_instr();
 
 
-void menu_inicial() {
-    ALLEGRO_EVENT event;
-    ALLEGRO_EVENT_QUEUE* fila = NULL;
-    fila = al_create_event_queue();
-    al_register_event_source(fila, al_get_display_event_source(screen));
-    // Dizemos que vamos tratar os eventos vindos do mouse
-    al_register_event_source(fila, al_get_mouse_event_source());
-
+static short cursor_aponta_botaox_tela_inicial() {
     float coord[4] = {DISPLAY_WEIGHT/4.0, 300, 3.0 * DISPLAY_WEIGHT/4.0, 490};
-    
     float coord_play[4] = {(coord[0]+coord[2])/2 - 40, coord[1] + 20, (coord[0]+coord[2])/2 + 40, coord[1] + 40};
     float coord_instr[4] = {(coord[0]+coord[2])/2 - 130, coord[1] + 80, (coord[0]+coord[2])/2 + 130, coord[1] + 100};
     float coord_quit[4] = {(coord[0]+coord[2])/2 - 40, coord[1] + 140, (coord[0]+coord[2])/2 + 40, coord[1] + 160};
 
+    int xp, yp;
+    int xw, yw;
     float x, y;
-    int botoes[3] = {0,0,0};
-    bool espera = true;
+
+    al_get_window_position(screen, &xw, &yw);
     
-    while (1) 
+    short botao;
+
+    if (al_get_mouse_cursor_position(&xp, &yp)) 
     {
-        //if (botoes[0] || botoes[1] || botoes[2]) {}
-        espera = true;
-        int xp, yp;
-        int xw, yw;
-        al_get_window_position(screen, &xw, &yw);
-        
-        if (al_get_mouse_cursor_position(&xp, &yp)) {
-            x = (float)(xp) - xw;
-            y = (float)(yp) - yw; 
+        x = (float)(xp) - xw;
+        y = (float)(yp) - yw; 
 
-            if (esta_contido_em(coord_play, x, y)) 
-            {
-                botoes[0] = 1;
-                botoes[1] = botoes[2] = 0;
-            }
-            else if (esta_contido_em(coord_instr, x, y)) {
-                botoes[1] = 1;
-                botoes[0] = botoes[2] = 0;
-            }
-            else if (esta_contido_em(coord_quit, x, y)) {
-                botoes[2] = 1;
-                botoes[0] = botoes[1] = 0;
-            }
-            else { 
-                botoes[0] = botoes[1] = botoes[2] = 0;
-            }
+        if (esta_contido_em(coord_play, x, y)) 
+        {
+            botao = bt_play;
         }
+        else if (esta_contido_em(coord_instr, x, y)) {
+            botao = bt_about;
+        }
+        else if (esta_contido_em(coord_quit, x, y)) {
+            botao = bt_quit;
+        }
+        else { 
+            botao = -1;
+        }
+    }
 
-        al_clear_to_color(COR_TELA);
-        al_draw_scaled_bitmap(img_menu_inicial, 0, 0, 392, 365, 0, 0, 392, 365, 0);
-        al_draw_text(fnt_river, COR_TEXT_MOUSE, DISPLAY_WEIGHT/2, DISPLAY_HIGHT/3, ALLEGRO_ALIGN_CENTRE, "R I V E R");
+    return botao;
+}
 
-        if (botoes[0])
-            al_draw_text(fnt, COR_TEXT_MOUSE, (coord[0]+coord[2])/2, coord[1] + 20, ALLEGRO_ALIGN_CENTRE, "PLAY");
-        else
-            al_draw_text(fnt, COR_TEXT_BUTTONS, (coord[0]+coord[2])/2, coord[1] + 20, ALLEGRO_ALIGN_CENTRE, "PLAY");
+static bool cursor_aponta_botao_tela_instr() {
+    int xp, yp;
+    int xw, yw;
+    float x, y;
+    float coord_botao[4] = {
+        10, DISPLAY_HIGHT - 75,
+        45, DISPLAY_HIGHT - 40
+    };
 
-        if (botoes[1])
-            al_draw_text(fnt, COR_TEXT_MOUSE, (coord[0]+coord[2])/2, coord[1] + 80, ALLEGRO_ALIGN_CENTRE, "INSTRUCTIONS");
-        else 
-            al_draw_text(fnt, COR_TEXT_BUTTONS, (coord[0]+coord[2])/2, coord[1] + 80, ALLEGRO_ALIGN_CENTRE, "INSTRUCTIONS");
+    al_get_window_position(screen, &xw, &yw);
 
-        if (botoes[2])
-            al_draw_text(fnt, COR_TEXT_MOUSE, (coord[0]+coord[2])/2, coord[1] + 140, ALLEGRO_ALIGN_CENTRE, "QUIT");
-        else
-            al_draw_text(fnt, COR_TEXT_BUTTONS, (coord[0]+coord[2])/2, coord[1] + 140, ALLEGRO_ALIGN_CENTRE, "QUIT");
+    static int c = 0;
+    if (al_get_mouse_cursor_position(&xp, &yp)) 
+    {
+        x = (float)(xp) - xw;
+        y = (float)(yp) - yw;
 
+        if (esta_contido_em(coord_botao, x, y)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void tela_instrucoes() {
+    ALLEGRO_EVENT event;
+    ALLEGRO_EVENT_QUEUE* fila = NULL;
+
+    fila = al_create_event_queue();
+    al_register_event_source(fila, al_get_display_event_source(screen));
+
+    al_register_event_source(fila, al_get_mouse_event_source());
+    al_register_event_source(fila, al_get_keyboard_event_source());
+
+    render_about();
+    al_flush_event_queue(fila);
+
+    while (1)
+    {    
         al_flip_display();
-
-        if (!al_is_event_queue_empty(fila))
+        al_wait_for_event(fila, NULL);
+    
+        if (!al_is_event_queue_empty(fila)) 
         {
             al_get_next_event(fila, &event);
 
-            x = event.mouse.x;
-            y = event.mouse.y;
-            
-            if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
+            if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
                 exit(0);
+    
+            else if (event.type == ALLEGRO_EVENT_KEY_DOWN &&
+                event.keyboard.keycode == ALLEGRO_KEY_LEFT) 
+            {
+                break;
             }
 
-            if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_UP) 
-            {    
-                if (esta_contido_em(coord_play, x, y)) {
-                    break;
-                } 
-                else if (esta_contido_em(coord_instr, x, y)) { 
-                    menu_instrucoes();
-                    al_flush_event_queue(fila);
-                    espera = false;                    
-                }
-                else if (esta_contido_em(coord_quit, x, y)) 
-                {                
-                    exit(0);                    
-                }
+            else if (cursor_aponta_botao_tela_instr())
+            {
+                if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_UP)
+                    break;   
             }
         }
 
-        if (espera)
-            al_wait_for_event(fila, NULL);
+    }
+    
+    al_destroy_event_queue(fila);
+}
+
+void tela_inicial() {
+    ALLEGRO_EVENT event;
+    ALLEGRO_EVENT_QUEUE* fila = NULL;
+    fila = al_create_event_queue();
+    al_register_event_source(fila, al_get_display_event_source(screen));
+    
+    // Dizemos que vamos tratar os eventos vindos do mouse
+    al_register_event_source(fila, al_get_mouse_event_source());
+
+    // Dizemos que vamos tratar os eventos vindos do teclado
+    al_register_event_source(fila, al_get_keyboard_event_source());
+    
+    short botao = 0;
+    short sair = 0;
+
+    al_flush_event_queue(fila);
+    
+    while (!sair) 
+    {
+        render_tela_inicial_fundo();
+        render_tela_inicial_botoes(botao);
+        al_flip_display();
+
+        al_wait_for_event(fila, NULL);
+        
+        if (!al_is_event_queue_empty(fila))
+        {
+            al_get_next_event(fila, &event);
+    
+            if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) 
+            {
+                exit(0);
+            }
+
+            else if (event.type == ALLEGRO_EVENT_MOUSE_AXES)
+            {
+                botao = cursor_aponta_botaox_tela_inicial();
+            }
+
+            else if (event.type == ALLEGRO_EVENT_KEY_DOWN) 
+            {    
+                if (event.keyboard.keycode == ALLEGRO_KEY_UP) 
+                {
+                    botao--;
+                }
+                if (event.keyboard.keycode == ALLEGRO_KEY_DOWN) 
+                {
+                    botao++;
+                }
+                
+                if (botao < 0)
+                    botao = 2;
+                
+                botao %= 3;
+            }
+
+            if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_UP ||
+               (event.type == ALLEGRO_EVENT_KEY_DOWN && 
+                event.keyboard.keycode == ALLEGRO_KEY_ENTER) ) 
+            {
+                switch (botao) 
+                {
+                    case bt_play:
+                        al_flush_event_queue(fila);
+                        sair = 1;
+                        break;
+                    
+                    case bt_about:
+                        tela_instrucoes();
+                        al_flush_event_queue(fila);
+                        break;
+
+                    case bt_quit:
+                        exit(0);
+                        break;
+                }
+            }
+        }
     }
 
     al_destroy_event_queue(fila);
 }
 
 
-void menu_instrucoes() {
+void tela_final(enum opt_end venceu) {
     ALLEGRO_EVENT event;
     ALLEGRO_EVENT_QUEUE* fila = NULL;
-
-    fila = al_create_event_queue();
-    al_register_event_source(fila, al_get_display_event_source(screen));
-    // Dizemos que vamos tratar os eventos vindos do mouse
-    al_register_event_source(fila, al_get_mouse_event_source());
-    /*  
-    const char* msg1 = "Controle a canoa usando as teclas de direção.";
-    const char* msg2 = "Cuidado com os obstáculos, para não perder pontos";
-    const char* msg3 = "e esgotar suas vidas.";
-    const char* msg4 = "Chegue ao destino sinalizado com uma bandeira.";
-  
-    al_draw_text(fnt_texto, COR_TEXT_INSTRUCTIONS, DISPLAY_WEIGHT/40, DISPLAY_HIGHT/6, ALLEGRO_ALIGN_LEFT, msg1);    
-    al_draw_text(fnt_texto, COR_TEXT_INSTRUCTIONS, DISPLAY_WEIGHT/40, DISPLAY_HIGHT/6 + 25, ALLEGRO_ALIGN_LEFT, msg2);    
-    al_draw_text(fnt_texto, COR_TEXT_INSTRUCTIONS, DISPLAY_WEIGHT/40, DISPLAY_HIGHT/6 + 50, ALLEGRO_ALIGN_LEFT, msg3);    
-    al_draw_text(fnt_texto, COR_TEXT_INSTRUCTIONS, DISPLAY_WEIGHT/40, DISPLAY_HIGHT/6 + 75, ALLEGRO_ALIGN_LEFT, msg4);    
-    */
-
-    al_clear_to_color(COR_TELA);
-    al_draw_bitmap(img_about, 0, 0, 0);
-
-    //al_draw_scaled_bitmap(img_game_over, 0, 0, 419, 605, 0, 0, 400, 500, 0);
     
-    //al_clear_to_color(COR_TELA);
-    //al_draw_bitmap(img_winner, 0, 0, 0);
-    
-    float x, y;
-    float coord_botao[4] = {DISPLAY_WEIGHT/9.0, 7 * DISPLAY_HIGHT/8.0, DISPLAY_WEIGHT/9.0 + 140, 7 * DISPLAY_HIGHT/8.0 + 30};
-    float coord[4] = {coord_botao[0]-30, coord_botao[1]-60, coord_botao[2]+30, coord_botao[3]+20};
-
-    while(1)
+    if (venceu == winner) 
     {
-        al_draw_filled_rectangle(coord_botao[0], coord_botao[1], coord_botao[2], coord_botao[3], COR_TELA);
-        al_draw_text(fnt, COR_TEXT_BUTTONS, coord_botao[0], coord_botao[1], ALLEGRO_ALIGN_LEFT, "GO BACK");
+        render_winner();
+    }
+    else if (venceu == loser) 
+    {
+        al_set_audio_stream_playing(music_abertura, false);
+        render_game_over();
+    }
+    
+    fila = al_create_event_queue();
+    
+    al_register_event_source(fila, al_get_display_event_source(screen));
+    // Dizemos que vamos tratar os eventos vindos do teclado
+    al_register_event_source(fila, al_get_keyboard_event_source());
+    al_rest(0.5);
+    al_flush_event_queue(fila);
+    
+    while (1)
+    {
+        al_flip_display();
+        al_wait_for_event(fila, NULL);
 
         if (!al_is_event_queue_empty(fila)) 
         {
             al_get_next_event(fila, &event);
 
-            x = event.mouse.x;
-            y = event.mouse.y;
-
             if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
                 exit(0);
-    
-            //al_draw_text(fnt, COR_TEXT, coord_botao[0], coord_botao[1], ALLEGRO_ALIGN_LEFT, "GO BACK");
 
-            if (esta_contido_em(coord_botao, x, y)) 
+            if (event.type == ALLEGRO_EVENT_KEY_DOWN) 
             {
-
-                al_draw_filled_rectangle(coord_botao[0], coord_botao[1], coord_botao[2], coord_botao[3], COR_TELA);
-                al_draw_text(fnt, COR_TEXT_MOUSE, coord_botao[0], coord_botao[1], ALLEGRO_ALIGN_LEFT, "GO BACK");
-
-                if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_UP) {
-                    //al_flush_event_queue(fila);
-                    break;        
+                if (event.keyboard.keycode == ALLEGRO_KEY_ENTER) 
+                {   
+                    //printf("entrou ENTER\n"); 
+                    break;
                 }
-            }            
+                    
+                if (event.keyboard.keycode == ALLEGRO_KEY_Q) 
+                {
+                    exit(0);
+                }
+            }
         }
         
-        al_flip_display();
-
-        al_wait_for_event(fila, NULL);
     }
     
+    //printf("saiu ENTER\n"); 
     al_destroy_event_queue(fila);
 }
+

@@ -1,22 +1,28 @@
 #include "ambiente.h"
+#include "eventos.h"
+#include "utils.h"
 #include <stdio.h>
 #include <time.h>
-//#include <math.h>
+#include <math.h>
 
 
-
-#define MAX_INCREASE 3
-#define MAX_DECREASE (-3)
+#define INCREASE_MAX 3
+#define DECREASE_MAX (-3)
 
 
 static int sorteia_ilha();
+static void set_ilha(Node* node);
 
 static int ME();
 static int MD();
 
 static void PreencheLinha(Node* node);
-static void ilha(Node* node);
 
+
+static int largura;
+static int piso_qtd_ilhas;
+static float probabilidade_ilha;
+static int folga_ilhas;
 
 static int ME ()
 {
@@ -29,18 +35,21 @@ static int ME ()
     
     randomize(random_integer(0, 1000000));
 
-    //if (random_real(0, 10) < 5)
     aux = random_integer(-1, 1);
-   // else
-    //    aux = random_integer(-2, 2);
-
+   
     i += aux;
-    if (i > MAX_INCREASE || i < -MAX_INCREASE) {
-        aux *= (-1); 
+    if (i > INCREASE_MAX) {
+        aux -= 2;
+        i -= 2;
     }
 
+    if (i < DECREASE_MAX) {
+        aux += 2;
+        i += 2;
+    }
+    
     me = xe + aux;
-            
+                
     if (me < MARGEM_ESQ)
         me = MARGEM_ESQ + 1.0 * INTERVALO/10;
 
@@ -66,11 +75,16 @@ static int MD ()
     aux = random_integer(-1, 1);
     
     i += aux;
-    if (i > MAX_INCREASE || i < MAX_DECREASE) {
-        aux *= (-1); 
-        i = 0;
+    if (i > INCREASE_MAX) {
+        aux -= 2;
+        i -= 2;
     }
-      
+
+    if (i < DECREASE_MAX) {
+        aux += 2;
+        i += 2;
+    }
+
     md = xd + aux;
 
     if (md > MARGEM_DIR)
@@ -88,8 +102,13 @@ static int MD ()
 Node* geraRio()
 {
     int i;
+    int v;
     
     Node* head = Queue_Init();
+    largura = LARGURA;
+    piso_qtd_ilhas = 1;
+    probabilidade_ilha = PROBABILITY_ILHA;
+
     /* gera as margens */
 
     for (i = 0; i < NROWS + 2; i++)
@@ -101,6 +120,12 @@ Node* geraRio()
         river_map[i] = *node;
     }
 
+    randomize(clock() + time(NULL));
+    v = random_integer(0, 10);
+    folga_ilhas = FOLGA_ILHAS-10;
+    
+    //set_ilha(&river_map[v]);
+    
     return head;
 }
 
@@ -116,13 +141,83 @@ void atualizaRio(Node *head)
 
     PreencheLinha(node);
 
+    static int cont_folga = 0;
+    cont_folga++;
+
+    if (distance > 0 && cont_folga >= folga_ilhas && sorteia_ilha()) 
+    {
+        cont_folga = 0;
+        set_ilha(node);
+    }
+
+    if (!finca_bandeira && distance >= METRO_FINAL)
+    {
+        finca_bandeira = true;
+        node->eh_fim = true;        
+    }
+    
+    if (finca_bandeira && river_map[NROWS-15].eh_fim) {
+        venceu = winner;
+    }
+
+    if (finca_bandeira && river_map[NROWS+1].eh_fim) {
+        fim = true;
+    }
+
     for (i = NROWS; i >= 0; i--) {
         river_map[i+1] = river_map[i];
     }
 
     river_map[0] = *node;
+}
+
+static void set_ilha (Node* node)
+{
+    Sequencia_Ilhas seq;
     
-    randomize(clock());
+    int fit_ilhas = floor((node->largura_rio - BLOCOS_BARCO)/BLOCOS_ILHA);
+
+    randomize(clock() + time(NULL));
+
+    //seq.qtd = MIN(fit_ilhas, piso_qtd_ilhas);
+    seq.qtd = random_integer(1, MIN(fit_ilhas, piso_qtd_ilhas));
+
+    seq.largura_pxs = seq.qtd * ILHA_PXS;
+    
+    int a, b;
+    a = node->margem_esq + 5;
+    b = node->margem_dir - 5 - BLOCOS_ILHA * seq.qtd;
+
+    //node->inicio_ilha = random_integer(node->margem_esq + 2, node->margem_dir - 10);
+    float reason_free = (1.0 * seq.qtd * BLOCOS_ILHA /node->largura_rio);
+    //static int c = 0;
+    
+    //printf("razao = %f\n", reason_free);
+    
+    //randomize(random_integer(0, 1000000));
+    randomize(time(NULL) + clock());
+
+    if (reason_free > 0.59 || largura < 40)
+    {
+        
+        if (random_integer(0, 1) == 0) {
+            //printf("entrou = %d\n", c++);
+            randomize(clock() + time(NULL));
+            int v1 = node->margem_esq + 1;
+            seq.inicio = random_integer(v1, v1 + 1);
+        }
+        else {
+            randomize(clock() + time(NULL));
+            int v1 = node->margem_dir - 1 - BLOCOS_ILHA * seq.qtd;
+            seq.inicio = random_integer(v1, v1 - 1);
+        }
+    }
+    else 
+    {
+        seq.inicio = random_integer(a, b);
+    }
+    
+    node->seq = seq;
 }
 
 static void PreencheLinha (Node* node)
@@ -130,27 +225,66 @@ static void PreencheLinha (Node* node)
     int me, md;
     me = ME();
     md = MD();
-
-    /*
-    if (md - me > LARGURA_MAX)
-        md = LARGURA_MAX + me;
     
-    if (md - me < LARGURA_MIN)
-        md = LARGURA_MIN + me;
-    */
+    static int q = 0;
+
+    if (distance == 0) 
+        q = 0;
+    
+    //printf("%d\n", largura);
+    if ( ((int)(distance/30.0)) > q) 
+    {        
+        q++;
+        
+        if (distance > 300) {
+            probabilidade_ilha = 0;
+        }
+
+        if (piso_qtd_ilhas < TETO_QTD_ILHAS)
+            piso_qtd_ilhas++;
+
+        randomize(clock() + time(NULL));
+
+        if (distance < 50)
+            folga_ilhas = random_integer(FOLGA_ILHAS - 15, FOLGA_ILHAS + 15);
+        else if (distance < 100)
+            folga_ilhas = random_integer(FOLGA_ILHAS - 10, FOLGA_ILHAS + 10);
+        else if (distance < 180)
+            folga_ilhas = random_integer(FOLGA_ILHAS - 5, FOLGA_ILHAS + 5);
+        else
+            folga_ilhas = random_integer(FOLGA_ILHAS + 20, FOLGA_ILHAS + 30);
+
+        if (largura > 70) {
+            //piso_qtd_ilhas = 3;
+            largura -= 20;
+        }
+
+        else if (largura > 50) {
+            //piso_qtd_ilhas = 3;
+            largura -= 10;
+        }
+
+        else if (largura > 20) {
+            //piso_qtd_ilhas = 2;
+            largura -= 5;
+        }
+
+        else if (largura > 12) {
+            //piso_qtd_ilhas = 1;
+            largura -= 2;
+        }
+
+        //printf("largura = %d\n", largura);
+    }
+
+    if (md - me > largura)
+    {
+        md = largura + me;
+    }
 
     node->margem_esq = me;
     node->margem_dir = md;
-    
-    static int folga = 0;
-
-    folga++;
-
-    if (folga >= FOLGA_ILHAS && sorteia_ilha()) {
-        folga = 0;
-        ilha(node);
-    }
-
+    node->largura_rio = md - me;
 }
 
 // haverá ilha ?
@@ -159,18 +293,8 @@ static int sorteia_ilha ()
     randomize(clock() + time(NULL));
     randomize(random_integer(0, 1000000));
 
-    return (random_real(0, 100) <= PROBABILITY_ILHA);
+    return (random_real(0, 100) <= probabilidade_ilha);
 }
-
-
-static void ilha (Node* node)
-{
-    randomize(clock() + time(NULL));
-    randomize(random_integer(0, 1000000));
-    
-    node->inicio_ilha = random_integer(node->margem_esq + 5, node->margem_dir - 15);
-}
-
 
 /*------------------------ fila de nodes -------------------------*/
 
@@ -186,8 +310,6 @@ Node* Queue_Init()
 Node* Queue_Insert(Node *head)
 {
     Node* node = (Node*) MallocSafe(sizeof(Node));
-    static int i = 0;
-    short tem_textura = 4;
 
     node->prox = head->prox;
 
@@ -197,17 +319,17 @@ Node* Queue_Insert(Node *head)
     
     head->prox = node;
 
-    node->inicio_ilha = -1;
+    node->seq.qtd = 0;
 
-    randomize(clock() * time(NULL));
-    randomize(random_integer(0, 1000000));
-
-    node->coef_relevo = -1;
-
+    node->eh_fim = false;
+    
+    node->tem_relevo = false;
+    
+    static short i = 0;
+    
     i++;
-
-    if (i == tem_textura) {
-        node->coef_relevo = random_integer(2, 5);
+    if (i == 4) {
+        node->tem_relevo = true;
         i = 0;
     }
 
@@ -237,5 +359,3 @@ void Queue_Free_All (Node *head)
 
     free(head);
 }
-
-
