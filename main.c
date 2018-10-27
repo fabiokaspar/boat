@@ -59,7 +59,7 @@ void new_stream_audio() {
         fprintf(stderr, "Falha ao carregar audio.\n");
     }
     
-    if (!al_set_audio_stream_playmode(music_abertura, ALLEGRO_PLAYMODE_LOOP)) 
+    if (!al_set_audio_stream_playmode(music_abertura, ALLEGRO_PLAYMODE_ONCE)) 
     {
         fprintf(stderr, "Falha ao definir play mode loop.\n");
     }
@@ -88,14 +88,9 @@ void play()
 {
     inicializa_jogo();
     
-    //struct timeval tempo;
-
-    //printf("inicia cronometro:\n");
     head = geraRio();
 
     render_lock_on_frame_initial();
-
-    //gettimeofday(&tempo, NULL);
 
     while (!fim)
     {
@@ -107,18 +102,14 @@ void play()
         render_cenario_frame();
         render_placar(score, lifes, distance);
         
-        render_barco(colision);
-        render_lock_on_colision(); 
-
-        render_pause_lock_on_stop();
+        render_barco_wait_on_colision();
+        
+        render_lock_on_stop();
         al_flip_display();
 
         wait_for_rate_frame();
     }
 
-    //al_set_audio_stream_playing(music_abertura, false);
-
-    //printf("--> %f seg\n", relogio(tempo));
     Queue_Free_All (head);
     finaliza_jogo();
 }

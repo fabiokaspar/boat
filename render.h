@@ -28,7 +28,6 @@ enum button {
 #define COR_MARGEM (al_map_rgb(255, 230, 128))
 #define LARGURA_LINHA 1.0
 #define COR_LINHA (al_map_rgb(204, 153, 0))
-//#define COR_LINHA (al_map_rgb(100, 100, 100))
 #define COR_TEXTURA (al_map_rgb(255, 217, 102))
 
 #define COR_TELA (al_map_rgb(255, 255, 255))
@@ -66,6 +65,7 @@ ALLEGRO_FONT* fnt_freeserif2;
 ALLEGRO_FONT* fnt_digiface2;
 
 
+
 void render_frame_initial();
 void render_cenario_frame();
 void render_pause();
@@ -73,7 +73,6 @@ void inicializa_fontes();
 void inicializa_janela();
 void desaloca_janela();
 void render_placar(long int score, int vidas, double distancia);
-void render_barco(bool colision);
 void render_winner();
 void render_game_over();
 void render_about();

@@ -1,8 +1,7 @@
 #include "eventos.h"
-//#include "menu.h"
+#include "render.h"
 #include <stdio.h>
 #include <stdbool.h>
-
 
 bool pressed_keys[3] = {false, false, false};
 
@@ -46,17 +45,6 @@ void trata_evento_teclado_setas() {
     trata_evento_teclado_direcao();
 }
 
-static void trata_evento_teclado_velocidade() {
-    if (pressed_keys[KEY_UP]) {
-        velocidade = VEL_MAX;
-        fps = FPS_FAST;
-    }
-    else {
-        velocidade = VEL_MIN;
-        fps = FPS_SLOW;
-    }
-}
-
 void* thread_timer(ALLEGRO_THREAD* thread, void* arg) {
     al_set_target_backbuffer(NULL);
 
@@ -75,12 +63,20 @@ void* thread_timer(ALLEGRO_THREAD* thread, void* arg) {
 
     al_register_event_source(queue_timer, al_get_timer_event_source(gerador_clock));
     al_start_timer(gerador_clock);
+    static int c = 0;
 
     while (!fim) 
     {
         if (lock_on_stop()) 
         {
             // desconsidera eventos do relogio enquanto pausado
+            al_flush_event_queue(queue_timer);
+            continue;
+        }
+
+        if (lock_on_frame_initial())
+        {
+            // desconsidera eventos do relogio enquanto jogador não apertar a 1º tecla
             al_flush_event_queue(queue_timer);
             continue;
         }
@@ -98,14 +94,12 @@ void* thread_timer(ALLEGRO_THREAD* thread, void* arg) {
 
                 if (check_colision > 30 && houveColisao())
                 {   
-                    //al_play_sample(sample_crash, 3.0, 0.0, 6.0, ALLEGRO_PLAYMODE_ONCE, NULL);
                     debita_score();
 
                     if (venceu != winner && debita_vidas())
                         break;
                     
                     check_colision = 0;
-                    //check_score = 0;                    
                 }
                 else if (check_score > 100 && !colision)
                 {
@@ -128,76 +122,6 @@ void* thread_timer(ALLEGRO_THREAD* thread, void* arg) {
     //printf("saiu timer.\n");
 
     return NULL;
-}
-
-static void debita_score() {
-    if (score > 0) 
-    {
-        if (score < 10)
-            score = 0;
-
-        else score -= 10;
-    }
-}
-
-static void credita_score(const float vel_atual) {
-    if (vel_atual == VEL_MIN)
-    {
-        score++;
-    }
-    else 
-    {
-        score += 5;
-    }
-}
-
-// retorna se chegou ao metro final
-static bool percore_distancia(const float vel_atual, const float delta_time) {
-    double acrescimo_distancia = (vel_atual * delta_time);
-    distance += acrescimo_distancia;
-
-    if (distance >= METRO_FINAL) 
-    {
-        //fim = true;
-        //venceu = winner; 
-
-        return true;
-    }
-
-    return false;
-}
-
-// retorna true se vidas se esgotaram
-static bool debita_vidas() {
-    colision = true;
-    lifes--;
-    
-    if (lifes == 0) 
-    {
-        venceu = loser;
-        fim = true;
-    
-        return true;
-    }
-
-    return false;
-}
-
-static void trata_evento_teclado_direcao() {
-    if (pressed_keys[KEY_LEFT] ^ pressed_keys[KEY_RIGHT]) 
-    {
-        if (pressed_keys[KEY_LEFT]) 
-        {
-            movimenta_barco('L');
-        }
-
-        if (pressed_keys[KEY_RIGHT]) 
-        {
-            movimenta_barco('R');
-        }
-    } else {
-        corrige_inclinacao_barco();
-    }
 }
 
 void* thread_eventos(ALLEGRO_THREAD* thread, void* arg) {
@@ -226,7 +150,7 @@ void* thread_eventos(ALLEGRO_THREAD* thread, void* arg) {
             if (!start && event.type == ALLEGRO_EVENT_KEY_DOWN) 
             {
                 start = true;
-                al_signal_cond(cond);
+                al_broadcast_cond(cond);
                 continue;
             }
 
@@ -307,19 +231,30 @@ static void reset_pressed_keys() {
     pressed_keys[KEY_UP] = false;
 }
 
-bool render_lock_on_colision() {    
-    if (colision) {
+//==========================================================================//
+
+bool render_barco_wait_on_colision() {
+    if (colision) 
+    {
+        al_draw_tinted_rotated_bitmap(barco, al_map_rgba_f(1, 1, 1, 0.5),
+            w/2, h/2, x, Y_INICIAL, angle, 0);
+        al_draw_text(fnt_texto2, al_map_rgb(255, 0, 0), DISPLAY_WEIGHT/2, DISPLAY_HIGHT/2, ALLEGRO_ALIGN_CENTRE, "C R A S H");             
+        
         al_flip_display();
         al_rest(INTERVAL_COLISION);
-        colision = false;
+        colision = false;        
         
         return true;
     }
-    
+    else {
+        al_draw_rotated_bitmap(barco, w/2, h/2, x, Y_INICIAL, angle, 0);
+    }
+
     return false;
 }
 
-void render_lock_on_frame_initial() {
+
+bool render_lock_on_frame_initial() {
     render_frame_initial();
     al_flip_display();
     
@@ -331,11 +266,31 @@ void render_lock_on_frame_initial() {
         al_wait_cond(cond, mutex);    
         
         al_unlock_mutex(mutex);
+        
+        return true;
     }
+
+    return false;
+}
+
+bool lock_on_frame_initial() {
+    if (!start) 
+    {
+        al_lock_mutex(mutex);
+
+        //while (!start)
+        al_wait_cond(cond, mutex);    
+        
+        al_unlock_mutex(mutex);
+        
+        return true;
+    }   
+
+    return false;
 }
 
 // retorna true se pausou
-bool render_pause_lock_on_stop() {
+bool render_lock_on_stop() {
     if (stop && !fim) {
         render_pause();
         
@@ -367,4 +322,86 @@ bool lock_on_stop() {
     }
 
     return false;
+}
+//==========================================================================//
+
+static void debita_score() {
+    if (score > 0) 
+    {
+        if (score < 10)
+            score = 0;
+
+        else score -= 10;
+    }
+}
+
+static void credita_score(const float vel_atual) {
+    if (vel_atual == VEL_MIN)
+    {
+        score++;
+    }
+    else 
+    {
+        score += 5;
+    }
+}
+
+// retorna se chegou ao metro final
+static bool percore_distancia(const float vel_atual, const float delta_time) {
+    double acrescimo_distancia = (vel_atual * delta_time);
+    distance += acrescimo_distancia;
+
+    if (distance >= METRO_FINAL) 
+    {
+        //fim = true;
+        //venceu = winner; 
+
+        return true;
+    }
+
+    return false;
+}
+
+// retorna true se vidas se esgotaram
+static bool debita_vidas() {
+    colision = true;
+    lifes--;
+    
+    if (lifes == 0) 
+    {
+        venceu = loser;
+        fim = true;
+    
+        return true;
+    }
+
+    return false;
+}
+
+static void trata_evento_teclado_direcao() {
+    if (pressed_keys[KEY_LEFT] ^ pressed_keys[KEY_RIGHT]) 
+    {
+        if (pressed_keys[KEY_LEFT]) 
+        {
+            movimenta_barco('L');
+        }
+
+        if (pressed_keys[KEY_RIGHT]) 
+        {
+            movimenta_barco('R');
+        }
+    } else {
+        corrige_inclinacao_barco();
+    }
+}
+
+static void trata_evento_teclado_velocidade() {
+    if (pressed_keys[KEY_UP]) {
+        velocidade = VEL_MAX;
+        fps = FPS_FAST;
+    }
+    else {
+        velocidade = VEL_MIN;
+        fps = FPS_SLOW;
+    }
 }

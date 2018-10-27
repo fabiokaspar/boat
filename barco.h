@@ -3,8 +3,8 @@
 
 #define X_INICIAL 200
 #define Y_INICIAL ((DISPLAY_HIGHT * 4)/5)
-#define VEL_MIN 2.0
-#define VEL_MAX 4.0
+#define VEL_MIN 1.5
+#define VEL_MAX 3.0
 
 
 #include "ambiente.h"

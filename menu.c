@@ -201,13 +201,14 @@ void tela_final(enum opt_end venceu) {
     ALLEGRO_EVENT event;
     ALLEGRO_EVENT_QUEUE* fila = NULL;
     
+    al_set_audio_stream_playing(music_abertura, false);
+    
     if (venceu == winner) 
     {
         render_winner();
     }
     else if (venceu == loser) 
     {
-        al_set_audio_stream_playing(music_abertura, false);
         render_game_over();
     }
     

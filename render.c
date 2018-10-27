@@ -8,10 +8,6 @@
 
 #define V (-0.8)
 #define PI 3.141592
-//#define MIN(a, b) ( (a) <= (b) ? (a) : (b)  )
-//#define MAX(a, b) ( (a) >= (b) ? (a) : (b)  )
-#define FORMAT_PIXEL ALLEGRO_PIXEL_FORMAT_ANY
-#define LOCK_PIXEL ALLEGRO_LOCK_READWRITE
 #define PLACAR (al_map_rgba_f(0, 0, 0, 0.9))
 
 static const char* msg1 = "PRESSIONE ENTER PARA RETORNAR AO MENU";
@@ -24,6 +20,7 @@ static void render_ilha(int index);
 static void carrega_imagens();
 static void desaloca_imagens();
 static void render_bandeira(float xesq, float xdir, float y);
+
 
 
 void render_ilha(int index) {
@@ -45,7 +42,7 @@ void render_ilha(int index) {
 void render_frame_initial() {
     render_cenario_frame();
     render_placar(score, lifes, distance);    
-    render_barco(colision);
+    render_barco_wait_on_colision();
     al_draw_text(fnt_texto2, al_map_rgb(0, 0, 0), DISPLAY_WEIGHT/2, DISPLAY_HIGHT/2, ALLEGRO_ALIGN_CENTRE, "press any key to start");
 }
 
@@ -144,17 +141,6 @@ static void render_bandeira(float xesq, float xdir, float y) {
     //al_draw_bitmap(bandeira, DISPLAY_WEIGHT-40, y, 0);
 }
 
-
-void render_barco(bool colision) {
-    if (colision) {
-        al_draw_tinted_rotated_bitmap(barco, al_map_rgba_f(1, 1, 1, 0.5),
-            w/2, h/2, x, Y_INICIAL, angle, 0);
-        al_draw_text(fnt_texto2, al_map_rgb(255, 0, 0), DISPLAY_WEIGHT/2, DISPLAY_HIGHT/2, ALLEGRO_ALIGN_CENTRE, "C R A S H");             
-    }
-    else {
-        al_draw_rotated_bitmap(barco, w/2, h/2, x, Y_INICIAL, angle, 0);
-    }
-}
 
 void render_placar(long int score, int vidas, double distancia) {
     char score_str[30];

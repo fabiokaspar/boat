@@ -120,12 +120,8 @@ Node* geraRio()
         river_map[i] = *node;
     }
 
-    randomize(clock() + time(NULL));
-    v = random_integer(0, 10);
     folga_ilhas = FOLGA_ILHAS-10;
-    
-    //set_ilha(&river_map[v]);
-    
+        
     return head;
 }
 
@@ -179,7 +175,6 @@ static void set_ilha (Node* node)
 
     randomize(clock() + time(NULL));
 
-    //seq.qtd = MIN(fit_ilhas, piso_qtd_ilhas);
     seq.qtd = random_integer(1, MIN(fit_ilhas, piso_qtd_ilhas));
 
     seq.largura_pxs = seq.qtd * ILHA_PXS;
@@ -188,20 +183,14 @@ static void set_ilha (Node* node)
     a = node->margem_esq + 5;
     b = node->margem_dir - 5 - BLOCOS_ILHA * seq.qtd;
 
-    //node->inicio_ilha = random_integer(node->margem_esq + 2, node->margem_dir - 10);
     float reason_free = (1.0 * seq.qtd * BLOCOS_ILHA /node->largura_rio);
-    //static int c = 0;
     
-    //printf("razao = %f\n", reason_free);
-    
-    //randomize(random_integer(0, 1000000));
     randomize(time(NULL) + clock());
 
     if (reason_free > 0.59 || largura < 40)
     {
         
         if (random_integer(0, 1) == 0) {
-            //printf("entrou = %d\n", c++);
             randomize(clock() + time(NULL));
             int v1 = node->margem_esq + 1;
             seq.inicio = random_integer(v1, v1 + 1);
@@ -230,31 +219,32 @@ static void PreencheLinha (Node* node)
 
     if (distance == 0) 
         q = 0;
+        
     
     //printf("%d\n", largura);
     if ( ((int)(distance/30.0)) > q) 
     {        
-        q++;
-        
-        if (distance > 300) {
-            probabilidade_ilha = 0;
-        }
+        q++;        
 
         if (piso_qtd_ilhas < TETO_QTD_ILHAS)
             piso_qtd_ilhas++;
 
+        if (distance >= 330) {
+            probabilidade_ilha = 0;
+        }
+
         randomize(clock() + time(NULL));
 
-        if (distance < 50)
+        if (distance < 70)
             folga_ilhas = random_integer(FOLGA_ILHAS - 15, FOLGA_ILHAS + 15);
-        else if (distance < 100)
+        else if (distance < 160)
             folga_ilhas = random_integer(FOLGA_ILHAS - 10, FOLGA_ILHAS + 10);
-        else if (distance < 180)
+        else if (distance < 250)
             folga_ilhas = random_integer(FOLGA_ILHAS - 5, FOLGA_ILHAS + 5);
         else
             folga_ilhas = random_integer(FOLGA_ILHAS + 20, FOLGA_ILHAS + 30);
 
-        if (largura > 70) {
+        if (largura > 80) {
             //piso_qtd_ilhas = 3;
             largura -= 20;
         }
@@ -269,12 +259,7 @@ static void PreencheLinha (Node* node)
             largura -= 5;
         }
 
-        else if (largura > 12) {
-            //piso_qtd_ilhas = 1;
-            largura -= 2;
-        }
-
-        //printf("largura = %d\n", largura);
+        printf("largura = %d\n", largura);
     }
 
     if (md - me > largura)
